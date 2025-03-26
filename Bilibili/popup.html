@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bilibili AI Skip</title>
+    <style>
+        body {
+            padding: 15px;
+            width: 280px;
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #1a73e8;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .setting {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 14px;
+            color: #444;
+        }
+
+        input[type="checkbox"] {
+            display: none;
+        }
+
+        .switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: #ccc;
+            border-radius: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 2px;
+            top: 2px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        input[type="checkbox"]:checked + .switch {
+            background: #1a73e8;
+        }
+
+        input[type="checkbox"]:checked + .switch::after {
+            transform: translateX(20px);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #444;
+            box-sizing: border-box;
+            margin-top: 4px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        small {
+            display: block;
+            color: #666;
+            font-size: 11px;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+
+        #status {
+            font-size: 12px;
+            color: #1a73e8;
+            text-align: center;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #status.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h3>Bilibili AI Skip</h3>
+    
+    <div class="setting">
+        <label>
+            Enable Extension
+            <input type="checkbox" id="enabled">
+            <span class="switch"></span>
+        </label>
+    </div>
+
+    <div class="setting">
+        <label>
+            Auto Skip Ads
+            <input type="checkbox" id="autoJump">
+            <span class="switch"></span>
+        </label>
+    </div>
+
+    <div class="setting">
+        <label>API Key</label>
+        <input type="text" id="apiKey" placeholder="Enter your API Key">
+    </div>
+
+    <div class="setting">
+        <label>API URL</label>
+        <input type="text" id="apiURL" placeholder="Enter API URL">
+        <small>(e.g., https://www.openai.com/v1/chat/completions)</small>
+    </div>
+
+    <div class="setting">
+        <label>API Model</label>
+        <input type="text" id="apiModel" placeholder="Enter API Model">
+        <small>(e.g., gpt-4o-mini)</small>
+    </div>
+
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
