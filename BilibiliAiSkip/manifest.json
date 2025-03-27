@@ -7,12 +7,8 @@
     "activeTab",
     "scripting",
     "storage",
-    "tabs",
-    "contextMenus"
+    "tabs"
   ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
       "matches": ["*://*.bilibili.com/video/*"],
@@ -30,5 +26,6 @@
   "icons": {
     "48": "icon48.png",
     "128": "icon128.png"
-  }
+  },
+  "homepage_url": "https://github.com/qingmeng1/bilijump-ai"
 }

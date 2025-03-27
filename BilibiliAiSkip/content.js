@@ -1,7 +1,7 @@
 let settings = {
     enabled: true,
     auto_jump: false,
-    apiKey: '',
+    apiKey: 'sk-NHzvSvXXXXXXF12f53BeB44402BbXXXX4E67a5096',
     apiURL: 'https://www.openai.com/v1/chat/completions',
     apiModel: 'gpt-4o-mini'
 };
@@ -39,9 +39,9 @@ let settings = {
                 bid = bvid;
                 showPopup(`Ai skip start. auto=${settings.auto_jump}`);
                 let video = document.querySelector('video');
-                showPopup(`Video length：${video.duration}s.`);
+                showPopup(`Video length：${Math.ceil(video.duration)}s.`);
                 if(video.duration < 60) {
-                    showPopup('The video is too short, not need to skip.');
+                    showPopup('Video too short, no skip.');
                     return;
                 }
                 try {
@@ -145,7 +145,7 @@ let settings = {
                                 }
                             }
                         }
-                    }
+                    } else showPopup('No found AD data.');
                 } catch (error) {
                     console.error('Failed to fetch ad time:', error);
                 }
@@ -188,7 +188,7 @@ async function adRecognition(bvid) {
         const aid = videoData.data.aid;
         const cid = videoData.data.cid;
         const title = videoData.data.title;
-        showPopup(`title: ${title}`);
+        showPopup(`Title: ${title}`);
 
         response = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
             credentials: "include"

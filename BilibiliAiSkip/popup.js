@@ -13,6 +13,10 @@ function loadSettings() {
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
             if (tabs[0] && tabs[0].url.match(/https?:\/\/.*\.bilibili\.com\/video\/.*/)) {
                 chrome.tabs.sendMessage(tabs[0].id, { action: 'getDefaultSettings' }, function(response) {
+                    if (chrome.runtime.lastError) {
+                        applySettings(storedValues, {});
+                        return;
+                    }
                     applySettings(storedValues, response ? response.settings : {});
                 });
             } else {
@@ -35,7 +39,7 @@ function applySettings(storedValues, defaultSettings) {
     
     document.getElementById('enabled').checked = 
         storedValues.enabled !== undefined ? storedValues.enabled : 
-        defaultSettings.enabled !== undefined ? defaultSettings.enabled : true;
+        defaultSettings.enabled !== undefined ? defaultSettings.enabled : false;
     
     document.getElementById('apiKey').value = 
         storedValues.apiKey !== undefined ? storedValues.apiKey : 
