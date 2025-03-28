@@ -1,13 +1,14 @@
 document.addEventListener('DOMContentLoaded', loadSettings);
 
 function loadSettings() {
-    chrome.storage.sync.get(['auto_jump', 'enabled', 'apiKey', 'apiURL', 'apiModel'], function(result) {
+    chrome.storage.sync.get(['auto_jump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'aliApiKey'], function(result) {
         const storedValues = {
             auto_jump: result.auto_jump,
             enabled: result.enabled,
             apiKey: result.apiKey,
             apiURL: result.apiURL,
-            apiModel: result.apiModel
+            apiModel: result.apiModel,
+            aliApiKey: result.aliApiKey
         };
 
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
@@ -30,6 +31,7 @@ function loadSettings() {
     document.getElementById('apiKey').addEventListener('input', saveSettings);
     document.getElementById('apiURL').addEventListener('input', saveSettings);
     document.getElementById('apiModel').addEventListener('input', saveSettings);
+    document.getElementById('aliApiKey').addEventListener('input', saveSettings);
 }
 
 function applySettings(storedValues, defaultSettings) {
@@ -52,6 +54,10 @@ function applySettings(storedValues, defaultSettings) {
     document.getElementById('apiModel').value = 
         storedValues.apiModel !== undefined ? storedValues.apiModel : 
         defaultSettings.apiModel !== undefined ? defaultSettings.apiModel : '';
+    
+    document.getElementById('aliApiKey').value = 
+        storedValues.aliApiKey !== undefined ? storedValues.aliApiKey : 
+        defaultSettings.aliApiKey !== undefined ? defaultSettings.aliApiKey : '';
 }
 
 function saveSettings() {
@@ -60,13 +66,15 @@ function saveSettings() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const apiURL = document.getElementById('apiURL').value.trim();
     const apiModel = document.getElementById('apiModel').value.trim();
+    const aliApiKey = document.getElementById('aliApiKey').value.trim();
     
     chrome.storage.sync.set({
         auto_jump: autoJump,
         enabled: enabled,
         apiKey: apiKey,
         apiURL: apiURL,
-        apiModel: apiModel
+        apiModel: apiModel,
+        aliApiKey: aliApiKey
     }, function() {
         const status = document.getElementById('status');
         status.textContent = 'Saved';

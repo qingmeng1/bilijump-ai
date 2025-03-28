@@ -1,19 +1,24 @@
 let settings = {
     enabled: true,
     auto_jump: false,
-    apiKey: 'sk-NHzvSvXXXXXXF12f53BeB44402BbXXXX4E67a5096',
+    apiKey: 'sk-xxxxxx..',
     apiURL: 'https://www.openai.com/v1/chat/completions',
-    apiModel: 'gpt-4o-mini'
+    apiModel: 'gpt-4o-mini',
+
+    aliApiURL: "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription",
+    aliTaskURL: "https://dashscope.aliyuncs.com/api/v1/tasks/",
+    aliApiKey: "sk-xxxxxx..",
 };
 (async function() {
     let bid = '';
 
-    chrome.storage.sync.get(['auto_jump', 'enabled', 'apiKey', 'apiURL', 'apiModel'], function(result) {
+    chrome.storage.sync.get(['auto_jump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'aliApiKey'], function(result) {
         if (result.auto_jump !== undefined) settings.auto_jump = result.auto_jump;
         if (result.enabled !== undefined) settings.enabled = result.enabled;
         if (result.apiKey) settings.apiKey = result.apiKey;
         if (result.apiURL) settings.apiURL = result.apiURL;
         if (result.apiModel) settings.apiModel = result.apiModel;
+        if (result.aliApiKey) settings.aliApiKey = result.aliApiKey;
         startAdSkipping();
     });
 
@@ -24,9 +29,23 @@ let settings = {
                 enabled: settings.enabled,
                 apiKey: settings.apiKey,
                 apiURL: settings.apiURL,
-                apiModel: settings.apiModel
+                apiModel: settings.apiModel,
+                aliApiKey: settings.aliApiKey
             }});
         }
+    });
+    
+    chrome.storage.onChanged.addListener(function(changes, namespace) {
+        if (changes.auto_jump) settings.auto_jump = changes.auto_jump.newValue;
+        if (changes.enabled) {
+            settings.enabled = changes.enabled.newValue;
+            if (!settings.enabled) location.reload();
+            else startAdSkipping();
+        }
+        if (changes.apiKey) settings.apiKey = changes.apiKey.newValue;
+        if (changes.apiURL) settings.apiURL = changes.apiURL.newValue;
+        if (changes.apiModel) settings.apiModel = changes.apiModel.newValue;
+        if (changes.aliApiKey) settings.aliApiKey = changes.aliApiKey.newValue;
     });
     
     function startAdSkipping() {
@@ -40,7 +59,7 @@ let settings = {
                 showPopup(`Ai skip start. auto=${settings.auto_jump}`);
                 let video = document.querySelector('video');
                 showPopup(`Video length：${Math.ceil(video.duration)}s.`);
-                if(video.duration < 60) {
+                if(video.duration < 120) {
                     showPopup('Video too short, no skip.');
                     return;
                 }
@@ -179,6 +198,10 @@ async function adRecognition(bvid) {
         showPopup("Please set API Model in extension settings");
         return JSON.parse(`{"ads":[]}`);
     }
+    if (!settings.aliApiKey) {
+        showPopup("Please set Aliyun API Key in extension settings");
+        return JSON.parse(`{"ads":[]}`);
+    }
 
     try {
         let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
@@ -196,19 +219,44 @@ async function adRecognition(bvid) {
         const playerData = await response.json();
         const subtitleUrl = playerData.data.subtitle.subtitles ? playerData.data.subtitle.subtitles[0]?.subtitle_url : null;
 
-        if (!subtitleUrl) {
-            showPopup("Subtitle is empty.");
+
+        var subtitle = "";
+        if (subtitleUrl) {
+            showPopup("Use subtitle analysis.");
+            response = await fetch(`https:${subtitleUrl}`);
+            const subtitleData = await response.json();
+
+            subtitleData.body.forEach(item => {
+                subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
+            });
+        }else {
+            showPopup("Use audio analysis.");
+            response = await fetch(`https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=0&fnver=0&fnval=80&fourk=1`, {
+                credentials: "include"
+            });
+            const playerData = await response.json();
+            const audioUrl = playerData.data.dash.audio ? playerData.data.dash.audio[0]?.base_url : null;
+
+            const taskId = await submitTranscriptionTask(audioUrl);
+            console.log("Task submitted successfully, Task ID:", taskId);
+
+            const results = await waitForTaskCompletion(taskId);
+
+            for (const result of results) {
+                if (result.subtask_status === "SUCCEEDED") {
+                    const transcription = await fetchTranscription(result.transcription_url);
+                    subtitle = generateSubtitle(transcription);
+                    //console.log("Subtitle content:\n", subtitle);
+                } else {
+                    console.log(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
+                }
+            }
+        }
+        
+
+        if (subtitle == "") {
             return JSON.parse(`{"ads":[]}`);
         }
-
-        response = await fetch(`https:${subtitleUrl}`);
-        const subtitleData = await response.json();
-
-        let subtitle = "";
-        subtitleData.body.forEach(item => {
-            subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
-        });
-
         const aiResponse = await callOpenAI(subtitle);
 
         const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
@@ -322,4 +370,98 @@ function getTime(time) {
     let s = parseInt(time % 60);
     s = s < 10 ? '0' + s : s;
     return h + ":" + m + ":" + s;
+}
+
+async function submitTranscriptionTask(audioURL) {
+  const requestBody = {
+    model: "paraformer-v2",
+    input: { file_urls: [audioURL] },
+    parameters: { channel_id: [0], language_hints: ["zh", "en"] }
+  };
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      action: "fetchDashScope",
+      url: settings.aliApiURL,
+      method: "POST",
+      apiKey: settings.aliApiKey,
+      body: requestBody
+    }, response => {
+      if (response.success) {
+        resolve(response.data.output.task_id);
+      } else {
+        console.error("Background fetch error:", response.error);
+        reject(new Error(response.error));
+      }
+    });
+  });
+}
+
+async function waitForTaskCompletion(taskId) {
+  while (true) {
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: "fetchDashScope",
+          url: `${settings.aliTaskURL}${taskId}`,
+          method: "GET",
+          apiKey: settings.aliApiKey
+        }, response => {
+          if (response.success) {
+            resolve(response.data);
+          } else {
+            console.log("Background fetch error:", response.error);
+            reject(new Error(response.error));
+          }
+        });
+      });
+
+      console.log("Task status:", response);
+
+      switch (response.output.task_status) {
+        case "SUCCEEDED":
+            showPopup("Audio analysis successfully.");
+          return response.output.results;
+        case "FAILED":
+          showPopup("Audio analysis is failed.");
+          throw new Error(`Task failed: ${response.error?.message || "Unknown error"}`);
+        case "RUNNING":
+        case "PENDING":
+          showPopup("Audio analysis in progress, waiting...");
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          break;
+        default:
+        showPopup("Audio analysis unknown error.");
+          throw new Error(`Unknown task status: ${response.output.task_status}`);
+      }
+    } catch (error) {
+      console.log("Error checking task status:", error);
+      throw error;
+    }
+  }
+}
+
+async function fetchTranscription(transcriptionURL) {
+    try {
+        const response = await fetch(transcriptionURL);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch transcription: ${response.status}`);
+        }
+        return await response.text();
+    } catch (error) {
+        console.log("Error fetching transcription:", error);
+        throw error;
+    }
+}
+
+function generateSubtitle(transcription) {
+    const transcripts = JSON.parse(transcription).transcripts[0].sentences;
+    let subtitle = "";
+    
+    transcripts.forEach(sentence => {
+        const from = (sentence.begin_time / 1000).toFixed(2);
+        const to = (sentence.end_time / 1000).toFixed(2);
+        subtitle += `${from} --> ${to}\n${sentence.text}\n`;
+    });
+    
+    return subtitle;
 }

@@ -3,6 +3,9 @@
   "name": "Bilibili AI Skip",
   "version": "1.0",
   "description": "Automatically skip ads in Bilibili videos using AI",
+  "host_permissions": [
+    "*://dashscope.aliyuncs.com/*"
+  ],
   "permissions": [
     "activeTab",
     "scripting",
@@ -16,6 +19,9 @@
       "run_at": "document_end"
     }
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
