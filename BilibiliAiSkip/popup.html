@@ -4,37 +4,44 @@
     <title>Bilibili AI Skip</title>
     <style>
         body {
-            padding: 15px;
-            width: 280px;
+            padding: 20px;
+            min-width: 300px;
             margin: 0;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f0f2f5;
-            color: #333;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background: #f7f9fc;
+            color: #2c3e50;
+            box-sizing: border-box;
         }
 
         h3 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            color: #1a73e8;
+            margin: 0 0 20px;
+            font-size: 20px;
+            color: #3498db;
             text-align: center;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .setting {
-            margin-bottom: 12px;
-            padding: 8px;
+            margin-bottom: 16px;
+            padding: 12px;
             background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .setting:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
         label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
+            display: block;
             font-size: 14px;
-            color: #444;
+            font-weight: 500;
+            color: #34495e;
+            cursor: pointer;
         }
 
         input[type="checkbox"] {
@@ -43,113 +50,196 @@
 
         .switch {
             position: relative;
-            width: 40px;
-            height: 20px;
-            background: #ccc;
-            border-radius: 20px;
+            width: 48px;
+            height: 24px;
+            background: #bdc3c7;
+            border-radius: 12px;
             transition: background 0.3s ease;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
         }
 
         .switch::after {
             content: '';
             position: absolute;
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             left: 2px;
             top: 2px;
             background: #fff;
             border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
             transition: transform 0.3s ease;
         }
 
         input[type="checkbox"]:checked + .switch {
-            background: #1a73e8;
+            background: #3498db;
         }
 
         input[type="checkbox"]:checked + .switch::after {
-            transform: translateX(20px);
+            transform: translateX(24px);
+        }
+
+        .switch:hover {
+            background: #a1a9af;
+        }
+
+        input[type="checkbox"]:checked + .switch:hover {
+            background: #2980b9;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
             font-size: 13px;
-            color: #444;
+            color: #2c3e50;
+            background: #fdfdfd;
             box-sizing: border-box;
-            margin-top: 4px;
+            margin-top: 8px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         input[type="text"]:focus {
             outline: none;
-            border-color: #1a73e8;
+            border-color: #3498db;
+            box-shadow: 0 0 4px rgba(52, 152, 219, 0.3);
+            background: #fff;
         }
 
         small {
             display: block;
-            color: #666;
+            color: #7f8c8d;
             font-size: 11px;
-            margin-top: 4px;
-            line-height: 1.2;
+            margin-top: 6px;
+            line-height: 1.4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+            margin-left: 6px;
+            font-weight: 500;
+        }
+
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
         }
 
         #status {
             font-size: 12px;
-            color: #1a73e8;
+            color: #3498db;
             text-align: center;
-            margin-top: 8px;
+            margin-top: 12px;
             opacity: 0;
+            font-weight: 500;
             transition: opacity 0.3s ease;
         }
 
         #status.show {
             opacity: 1;
         }
+
+        @media (max-width: 320px) {
+            body {
+                padding: 15px;
+                min-width: 260px;
+            }
+            .setting {
+                padding: 10px;
+            }
+            label {
+                font-size: 13px;
+            }
+            input[type="text"] {
+                padding: 8px 10px;
+            }
+            .switch {
+                width: 44px;
+                height: 22px;
+            }
+            .switch::after {
+                width: 18px;
+                height: 18px;
+            }
+            input[type="checkbox"]:checked + .switch::after {
+                transform: translateX(22px);
+            }
+        }
     </style>
 </head>
 <body>
     <h3>Bilibili AI Skip</h3>
-    
     <div class="setting">
-        <label>
+        <label class="checkbox-label" for="enabled">
             Enable Extension
-            <input type="checkbox" id="enabled">
-            <span class="switch"></span>
+            <span>
+                <input type="checkbox" id="enabled">
+                <span class="switch"></span>
+            </span>
         </label>
     </div>
-
     <div class="setting">
-        <label>
+        <label class="checkbox-label" for="autoJump">
             Auto Skip Ads
-            <input type="checkbox" id="autoJump">
-            <span class="switch"></span>
+            <span>
+                <input type="checkbox" id="autoJump">
+                <span class="switch"></span>
+            </span>
         </label>
     </div>
-
     <div class="setting">
-        <label>API Key</label>
-        <input type="text" id="apiKey" placeholder="Enter your API Key">
-    </div>
-
-    <div class="setting">
-        <label>API URL</label>
+        <label for="apiURL">API URL</label>
         <input type="text" id="apiURL" placeholder="Enter API URL">
         <small>(e.g., https://www.openai.com/v1/chat/completions)</small>
     </div>
-
     <div class="setting">
-        <label>API Model</label>
-        <input type="text" id="apiModel" placeholder="Enter API Model">
-        <small>(e.g., gpt-4o-mini)</small>
+        <label for="apiKey">API Key</label>
+        <input type="text" id="apiKey" placeholder="Enter your API Key">
+        <small>(e.g., sk-xxxxxx...)</small>
     </div>
     <div class="setting">
-        <label>Aliyun API Key</label>
+        <label for="apiModel">AI Model</label>
+        <input type="text" id="apiModel" placeholder="Enter API Model">
+        <small>(e.g., gpt-4o-mini, deepseek-v3...)</small>
+    </div>
+    <div class="setting">
+        <label class="checkbox-label" for="audioEnabled">
+            Enable Audio
+            <span>
+                <input type="checkbox" id="audioEnabled">
+                <span class="switch"></span>
+            </span>
+        </label>
+    </div>
+    <div class="setting">
+        <label class="checkbox-label" for="autoAudio">
+            Auto Audio Analysis
+            <span>
+                <input type="checkbox" id="autoAudio">
+                <span class="switch"></span>
+            </span>
+        </label>
+    </div>
+    <div class="setting">
+        <label for="aliApiKey">Aliyun API Key <a href="https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen" target="_blank">Apply</a></label>
         <input type="text" id="aliApiKey" placeholder="Enter your Aliyun API Key">
-        <small>(e.g., sk-xxxxxx......)</small>
+        <small>(e.g., sk-xxxxxx...)</small>
     </div>
     <div id="status"></div>
-
     <script src="popup.js"></script>
 </body>
 </html>

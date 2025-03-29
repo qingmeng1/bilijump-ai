@@ -4,11 +4,11 @@
   "version": "1.0",
   "description": "Automatically skip ads in Bilibili videos using AI",
   "host_permissions": [
-    "*://dashscope.aliyuncs.com/*"
+    "*://dashscope.aliyuncs.com/*",
+    "*://api.bilibili.com/*"
   ],
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
     "tabs"
   ],

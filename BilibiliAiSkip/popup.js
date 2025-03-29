@@ -1,87 +1,40 @@
-document.addEventListener('DOMContentLoaded', loadSettings);
+document.addEventListener('DOMContentLoaded', () => {
+    const keys = ['autoJump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
+    
+    chrome.storage.sync.get(keys, result => {
+        chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+            const apply = defaults => keys.forEach(k => {
+                const el = document.getElementById(k);
+                const val = result[k] ?? defaults[k] ?? (el.type === 'checkbox' ? false : '');
+                el[el.type === 'checkbox' ? 'checked' : 'value'] = val;
+                el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', save);
+            });
 
-function loadSettings() {
-    chrome.storage.sync.get(['auto_jump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'aliApiKey'], function(result) {
-        const storedValues = {
-            auto_jump: result.auto_jump,
-            enabled: result.enabled,
-            apiKey: result.apiKey,
-            apiURL: result.apiURL,
-            apiModel: result.apiModel,
-            aliApiKey: result.aliApiKey
-        };
-
-        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-            if (tabs[0] && tabs[0].url.match(/https?:\/\/.*\.bilibili\.com\/video\/.*/)) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: 'getDefaultSettings' }, function(response) {
-                    if (chrome.runtime.lastError) {
-                        applySettings(storedValues, {});
-                        return;
-                    }
-                    applySettings(storedValues, response ? response.settings : {});
-                });
+            if (tab?.url.match(/https?:\/\/.*\.bilibili\.com\/video\/.*/)) {
+                chrome.tabs.sendMessage(tab.id, { action: 'getDefaultSettings' }, 
+                    r => apply(chrome.runtime.lastError ? {} : r?.settings || {}));
             } else {
-                applySettings(storedValues, {});
+                apply({});
             }
         });
     });
 
-    document.getElementById('enabled').addEventListener('change', saveSettings);
-    document.getElementById('autoJump').addEventListener('change', saveSettings);
-    document.getElementById('apiKey').addEventListener('input', saveSettings);
-    document.getElementById('apiURL').addEventListener('input', saveSettings);
-    document.getElementById('apiModel').addEventListener('input', saveSettings);
-    document.getElementById('aliApiKey').addEventListener('input', saveSettings);
-}
+    const save = debounce(() => {
+        const settings = Object.fromEntries(keys.map(k => {
+            const el = document.getElementById(k);
+            return [k, el.type === 'checkbox' ? el.checked : el.value.trim()];
+        }));
+        
+        chrome.storage.sync.set(settings, () => {
+            const s = document.getElementById('status');
+            s.textContent = 'Saved';
+            s.classList.add('show');
+            setTimeout(() => (s.classList.remove('show'), s.textContent = ''), 1000);
+        });
+    }, 300);
+});
 
-function applySettings(storedValues, defaultSettings) {
-    document.getElementById('autoJump').checked = 
-        storedValues.auto_jump !== undefined ? storedValues.auto_jump : 
-        defaultSettings.auto_jump !== undefined ? defaultSettings.auto_jump : false;
-    
-    document.getElementById('enabled').checked = 
-        storedValues.enabled !== undefined ? storedValues.enabled : 
-        defaultSettings.enabled !== undefined ? defaultSettings.enabled : false;
-    
-    document.getElementById('apiKey').value = 
-        storedValues.apiKey !== undefined ? storedValues.apiKey : 
-        defaultSettings.apiKey !== undefined ? defaultSettings.apiKey : '';
-    
-    document.getElementById('apiURL').value = 
-        storedValues.apiURL !== undefined ? storedValues.apiURL : 
-        defaultSettings.apiURL !== undefined ? defaultSettings.apiURL : '';
-    
-    document.getElementById('apiModel').value = 
-        storedValues.apiModel !== undefined ? storedValues.apiModel : 
-        defaultSettings.apiModel !== undefined ? defaultSettings.apiModel : '';
-    
-    document.getElementById('aliApiKey').value = 
-        storedValues.aliApiKey !== undefined ? storedValues.aliApiKey : 
-        defaultSettings.aliApiKey !== undefined ? defaultSettings.aliApiKey : '';
-}
-
-function saveSettings() {
-    const autoJump = document.getElementById('autoJump').checked;
-    const enabled = document.getElementById('enabled').checked;
-    const apiKey = document.getElementById('apiKey').value.trim();
-    const apiURL = document.getElementById('apiURL').value.trim();
-    const apiModel = document.getElementById('apiModel').value.trim();
-    const aliApiKey = document.getElementById('aliApiKey').value.trim();
-    
-    chrome.storage.sync.set({
-        auto_jump: autoJump,
-        enabled: enabled,
-        apiKey: apiKey,
-        apiURL: apiURL,
-        apiModel: apiModel,
-        aliApiKey: aliApiKey
-    }, function() {
-        const status = document.getElementById('status');
-        status.textContent = 'Saved';
-        status.classList.add('show');
-        setTimeout(() => {
-            status.classList.remove('show');
-            setTimeout(() => status.textContent = '', 300);
-        }, 1000);
-    });
-}
+const debounce = (fn, wait) => {
+    let t;
+    return (...args) => (clearTimeout(t), t = setTimeout(() => fn(...args), wait));
+};
