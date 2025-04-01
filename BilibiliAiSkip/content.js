@@ -13,23 +13,18 @@ let settings = {
 };
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
-var videoPopup;
-var taskPopup;
-var aiPopup;
-var adPopups = [];
+let popups = { audioCheck: null, task: null, ai: null, ads: [] };
 
 (async function() {
     chrome.storage.sync.get(configKeys, res => {
         configKeys.forEach(k => settings[k] = res[k] ?? settings[k]);
         startAdSkipping();
     });
-
     chrome.runtime.onMessage.addListener(({ action }, _, res) => 
         action === 'getDefaultSettings' && res({ 
             settings: Object.fromEntries(configKeys.map(k => [k, settings[k]])) 
         })
     );
-
     chrome.storage.onChanged.addListener(changes => 
         Object.entries(changes).forEach(([k, v]) => {
             if (!configKeys.includes(k)) return;
@@ -39,7 +34,7 @@ var adPopups = [];
     );
 
 
-    let bid = '';
+    let bid = '', pid = '';
     function startAdSkipping() {
         if (!settings.enabled) return;
 
@@ -48,11 +43,13 @@ var adPopups = [];
         showPopup(`音频分析：${settings.audioEnabled}`);
         setInterval(async function(){
             const bvid = window.location.pathname.split('/')[2];
-            if(bid !== bvid){
+            const pvid = new URLSearchParams(window.location.search).get('p');;
+            if(bid !== bvid || pid !== pvid){
                 bid = bvid;
-                if(videoPopup) closePopup(videoPopup);
-                if(taskPopup) closePopup(taskPopup);
-                if(aiPopup) closePopup(aiPopup);
+                pid = pvid;
+                if(popups.audioCheck) closePopup(popups.audioCheck);
+                if(popups.task) closePopup(popups.task);
+                if(popups.ai) closePopup(popups.ai);
 
                 let video = document.querySelector('video');
                 while(!video.duration) {
@@ -62,26 +59,24 @@ var adPopups = [];
                 showPopup(`视频长度：${Math.ceil(video.duration)}s`);
                 if((video?.duration || 0) < 120) {
                     console.log(video.duration);
-                    showPopup('视频过短，无需分析广告');
+                    showPopup('短视频，无需分析广告');
                     return;
                 }
                 try {
-                    let adsData = await adRecognition(bvid);
+                    let adsData = await adRecognition(bvid,pvid);
                     for(let i = 1; i < 3 && adsData == null; i++) {
                         console.log(adsData);
                         showPopup('Re-fetch AD data.');
-                        adsData = await adRecognition(bvid);
+                        adsData = await adRecognition(bvid,pvid);
                     }
                     console.log(`Skip data`);
                     console.log(adsData);
                     if(adsData && adsData.ads.length >= 1) {
                         for (let i = 0; i < adsData.ads.length; i++) {
-                            let TARGET_TIME = adsData.ads[i].start_time;
-                            let SKIP_TO_TIME = adsData.ads[i].end_time;
-                            let product_name = adsData.ads[i].product_name;
-                            let ad_content = adsData.ads[i].ad_content;
-                            let intervalId = setInterval(skipVideoAD, 1000);
+                            let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content, intervalId = setInterval(skipVideoAD, 1000);
                             showPopup(`广告时间：${getTime(TARGET_TIME)} --> ${getTime(SKIP_TO_TIME)}`);
+                            showPopup(`产品名称：${product_name}`);
+                            //showPopup(`广告内容：${ad_content}`);
                             function skipVideoAD() {
                                 let video = document.querySelector('video');
                                 if (!video) {
@@ -95,7 +90,7 @@ var adPopups = [];
                                         showPopup('广告已跳过.');
                                         //clearInterval(intervalId);
                                     } else {
-                                        if(adPopups[i]) {
+                                        if(popups.ads[i]) {
                                             document.querySelector('#skip-button').innerHTML = Math.ceil(SKIP_TO_TIME - currentTime);
                                             return;
                                         }
@@ -162,21 +157,21 @@ var adPopups = [];
 
                                         closeButton.addEventListener('click', () => {
                                             clearInterval(intervalId);
-                                            adPopups[i].remove();
+                                            popups.ads[i].remove();
                                         });
                                         popup.querySelector('#skip-button').addEventListener('click', () => {
                                             popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(50, 50, 50, 0.3))';
-                                            adPopups[i].remove();
-                                            adPopups[i] = undefined;
+                                            popups.ads[i].remove();
+                                            popups.ads[i] = undefined;
                                             video.currentTime = SKIP_TO_TIME;
                                             showPopup('广告已跳过.');
                                         });
 
-                                        adPopups[i] = popup;
+                                        popups.ads[i] = popup;
                                     }
-                                }else if(adPopups[i]) {
-                                    adPopups[i].remove();
-                                    adPopups[i] = undefined;
+                                }else if(popups.ads[i]) {
+                                    popups.ads[i].remove();
+                                    popups.ads[i] = undefined;
                                     if(window.location.pathname.split('/')[2] !== bvid) {
                                         clearInterval(intervalId);
                                         return;
@@ -205,7 +200,7 @@ var adPopups = [];
     });
 })();
 
-async function adRecognition(bvid) {
+async function adRecognition(bvid,pvid) {
     if (!settings.apiKey) {
         showPopup("Please set API Key in extension settings");
         return JSON.parse(`{"ads":[], "msg":"Please set API Key"}`);
@@ -229,15 +224,18 @@ async function adRecognition(bvid) {
         });
         const videoData = await response.json();
         const aid = videoData.data.aid;
-        const cid = videoData.data.cid;
+        const cid = videoData.data.pages?.[pvid]?.cid || videoData.data.cid;
+        //const cid = document.querySelector('.bpx-player-ctrl-eplist-multi-menu-item.bpx-state-multi-active-item')?.getAttribute('data-cid') || videoData.data.cid;
         const title = videoData.data.title;
-        showPopup(`bvid: ${bvid}`);
+        showPopup(`视频ID: ${bvid}`);
+        showPopup(`CID: ${cid}`);
+        console.log(`PID: ${pvid}`);
 
         response = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
             credentials: "include"
         });
         const playerData = await response.json();
-        const subtitleUrl = playerData.data.subtitle.subtitles ? playerData.data.subtitle.subtitles[0]?.subtitle_url : null;
+        const subtitleUrl = playerData.data?.subtitle?.subtitles?.[0]?.subtitle_url;
 
 
         var subtitle = "";
@@ -250,8 +248,11 @@ async function adRecognition(bvid) {
                 subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
             });
         }else if(settings.audioEnabled) {
-            showPopup("60s 后解锁音频分析.");
-            await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
+            showPopup("01:00 后解锁音频分析.");
+            while(document.querySelector('video').currentTime < 60) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+            //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
             if (!settings.autoAudio && ! await checkPopup()) {
                 return JSON.parse(`{"ads":[], "msg":"用户拒绝音频分析, 识别结束."}`);
             }
@@ -261,11 +262,14 @@ async function adRecognition(bvid) {
                 credentials: "include"
             });
             const playerData = await response.json();
-            const audioUrl = playerData.data.dash.audio ? playerData.data.dash.audio[0]?.base_url : null;
+            const audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
 
+            if(!audioUrl) {
+                return JSON.parse(`{"ads":[], "msg":"获取不到音频文件."}`);
+            }
             showPopup("提交音频文件.");
             console.log("audioUrl: " + audioUrl);
-            const taskId = await submitTranscriptionTask(audioUrl);
+            const taskId = await submitTranscriptionTask("https://blob20.art/bilibili/download?url="+escape(audioUrl));
             console.log("Task submitted successfully, Task ID:", taskId);
 
             showPopup("等待音频分析结果.");
@@ -279,7 +283,7 @@ async function adRecognition(bvid) {
                 } else {
                     console.log(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
                     if(result.code === "SUCCESS_WITH_NO_VALID_FRAGMENT") {
-                        return JSON.parse(`{"ads":[], "msg":"No valid fragment."}`);
+                        return JSON.parse(`{"ads":[], "msg":"音频无有效片段."}`);
                     } else {
                         return JSON.parse(`{"ads":[], "msg":"音频解析失败：${result.message}"}`);
                     }
@@ -292,9 +296,13 @@ async function adRecognition(bvid) {
             return JSON.parse(`{"ads":[], "msg":"无解析内容."}`);
         }
 
-        aiPopup = showPopup("AI 分析中...",1);
-        const aiResponse = await callOpenAI(subtitle);
-        closePopup(aiPopup);
+        popups.ai = showPopup("AI 分析中...",1);
+        let aiResponse = await callOpenAI(subtitle);
+        for(let i = 1; i < 3 && aiResponse; i++) {
+            showPopup('Re-fetch AI.');
+            aiResponse = await callOpenAI(subtitle);
+        }
+        closePopup(popups.ai);
 
 
         if (aiResponse == "") {
@@ -315,38 +323,23 @@ async function adRecognition(bvid) {
     } catch (error) {
         showPopup("Error: " + error);
         console.log("Error:", error);
+        if(popups.audioCheck) closePopup(popups.audioCheck);
+        if(popups.task) closePopup(popups.task);
+        if(popups.ai) closePopup(popups.ai);
         return null;
     }
 
     async function callOpenAI(subtitle) {
         const requestData = {
             model: settings.apiModel,
-            messages: [
-                {
-                    role: "system",
-                    content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容，只需要识别20秒以上的内容"
-                },
-                {
-                    role: "system",
-                    content: "如果结果匹配则继续检测原始内容前后上下文是否与广告有关联，如果有关联则把相关内容的时间范围也包括在内"
-                },
-                {
-                    role: "system",
-                    content: "检查产品名称和广告内容是否有错别字，如果有请修正，广告内容不能太长，请严格以这样的json的格式返回：{\n  \"ads\": [\n    {\n      \"start_time\": \"335.88\",\n      \"end_time\": \"425.34\",\n      \"product_name\": \"产品名称\",\n      \"ad_content\": \"广告内容。\"\n    },\n  \"msg\": \"是否识别到广告\"\n  ]\n}"
-                },
-                {
-                    role: "user",
-                    content: subtitle
-                }
-            ]
-        };
+            messages: [{role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告"},
+                        {role: "system", content: "如果结果匹配则继续检测原始内容前后上下文是否与广告有关联，如果有关联则把相关内容的时间范围也包括在内"},
+                        {role: "system", content: "检查产品名称和广告内容是否有错别字，如果有请修正，返回的广告名称和内容不能太长，请严格以这样的json的格式返回：{\n  \"ads\": [\n    {\n      \"start_time\": \"335.88\",\n      \"end_time\": \"425.34\",\n      \"product_name\": \"产品名称\",\n      \"ad_content\": \"广告内容。\"\n    },\n  \"msg\": \"是否识别到广告\"\n  ]\n}"},
+                        {role: "user", content: subtitle}]};
 
         const response = await fetch(settings.apiURL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${settings.apiKey}`
-            },
+            headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
             body: JSON.stringify(requestData)
         });
 
@@ -359,7 +352,7 @@ async function adRecognition(bvid) {
         }
 
         if (!data.choices?.length) {
-            showPopup("No valid response received");
+            showPopup("未收到有效响应.");
             return "";
         }
 
@@ -370,40 +363,12 @@ async function adRecognition(bvid) {
 let popupCount = 0;
 
 function closePopup(popup) {
-    popup.remove();
-    popupCount--;
-    adjustPopupPositions();
-}
-
-function showPopup(msg,persist) {
-    console.log(msg);
-    var popup = document.createElement('div');
-    popup.innerText = msg;
-    popup.style.position = 'absolute';
-    popup.style.bottom = `${80 + popupCount * 60}px`;
-    popup.style.right = '10px';
-    popup.style.padding = '10px';
-    popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(50, 50, 50, 0.5))';
-    popup.style.color = '#fff';
-    popup.style.borderRadius = '5px';
-    popup.style.zIndex = '1000';
-    popup.classList.add('popup');
-
-    var playerContainer = document.querySelector('.bpx-player-container');
-    if (playerContainer) {
-        playerContainer.appendChild(popup);
-        popupCount++;
-
+    if(popup) {
+        popup.remove();
+        popup == null;
+        popupCount--;
         adjustPopupPositions();
-        if (persist == undefined) {
-            setTimeout(function() {
-                closePopup(popup);
-            }, 7000);
-        }
-    } else {
-        console.error('Player container not found.');
     }
-    return popup;
 }
 
 async function checkPopup() {
@@ -457,14 +422,45 @@ async function checkPopup() {
             popup.remove();
             resolve(false);
         });
-        videoPopup = popup;
+        popups.audioCheck = popup;
     })
     return userChoice;
 }
 
+function showPopup(msg,persist) {
+    console.log(msg);
+    var popup = document.createElement('div');
+    popup.innerText = msg;
+    popup.style.position = 'absolute';
+    popup.style.bottom = `${80 + popupCount * 60}px`;
+    popup.style.right = '10px';
+    popup.style.padding = '10px';
+    popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(50, 50, 50, 0.5))';
+    popup.style.color = '#fff';
+    popup.style.borderRadius = '5px';
+    popup.style.zIndex = '1000';
+    popup.classList.add('popup');
+
+    var playerContainer = document.querySelector('.bpx-player-container');
+    if (playerContainer) {
+        playerContainer.appendChild(popup);
+        popupCount++;
+
+        adjustPopupPositions();
+        if (!persist) {
+            setTimeout(function() {
+                closePopup(popup);
+            }, 7000);
+        }
+    } else {
+        console.error('Player container not found.');
+    }
+    return popup;
+}
+
 const adjustPopupPositions = () => {
     document.querySelectorAll('.popup').forEach((el, i, arr) => {
-        el.style.bottom = `${60 + (arr.length - i - 1) * (el.offsetHeight + 10)}px`;
+        el.style.bottom = `${100 + (arr.length - i - 1) * (el.offsetHeight + 10)}px`;
     });
 };
 
@@ -525,17 +521,17 @@ async function waitForTaskCompletion(taskId) {
       switch (response.output.task_status) {
         case "SUCCEEDED":
             showPopup("音频解析成功.");
-            closePopup(taskPopup);
+            closePopup(popups.task);
             return response.output.results;
         case "FAILED":
             showPopup("音频解析失败.");
-            closePopup(taskPopup);
+            closePopup(popups.task);
             //throw new Error(`Task failed: ${response.error?.message || "Unknown error"}`);
             return response.output.results;
         case "RUNNING":
         case "PENDING":
-            if (taskPopup == null) {
-                taskPopup = showPopup("音频解析中...", 1);
+            if (!popups.task) {
+                popups.task = showPopup("音频解析中...", 1);
             }
             await new Promise(resolve => setTimeout(resolve, 5000));
             break;
