@@ -5,6 +5,7 @@
   "description": "Automatically skip ads in Bilibili videos using AI",
   "host_permissions": [
     "*://dashscope.aliyuncs.com/*",
+    "*://api.cloudflare.com/*",
     "*://api.bilibili.com/*"
   ],
   "permissions": [

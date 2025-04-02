@@ -10,6 +10,9 @@ let settings = {
     aliApiURL: "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription",
     aliTaskURL: "https://dashscope.aliyuncs.com/api/v1/tasks/",
     aliApiKey: "",
+
+    cfApiKey: "Dmlpe9TkvsvBCE0N-FkqeRkN5ANCyHTnUSnAtGCH",
+    cfApiURL: "https://api.cloudflare.com/client/v4/accounts/34c49ed8e1d2bd41c330fb65de4c5890/d1/database/c1ad567a-2375-49b4-83e2-d1de52a0902f/query",
 };
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
@@ -201,23 +204,6 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
 })();
 
 async function adRecognition(bvid,pvid) {
-    if (!settings.apiKey) {
-        showPopup("Please set API Key in extension settings");
-        return JSON.parse(`{"ads":[], "msg":"Please set API Key"}`);
-    }
-    if (!settings.apiURL) {
-        showPopup("Please set API URL in extension settings");
-        return JSON.parse(`{"ads":[], "msg":"Please set API URL"}`);
-    }
-    if (!settings.apiModel) {
-        showPopup("Please set API Model in extension settings");
-        return JSON.parse(`{"ads":[], "msg":"Please set AI Model"}`);
-    }
-    if (!settings.aliApiKey) {
-        showPopup("Please set Aliyun API Key in extension settings");
-        return JSON.parse(`{"ads":[], "msg":"Please set Aliyun API Key"}`);
-    }
-
     try {
         let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
             credentials: "include"
@@ -227,9 +213,50 @@ async function adRecognition(bvid,pvid) {
         const cid = videoData.data.pages?.[pvid]?.cid || videoData.data.cid;
         //const cid = document.querySelector('.bpx-player-ctrl-eplist-multi-menu-item.bpx-state-multi-active-item')?.getAttribute('data-cid') || videoData.data.cid;
         const title = videoData.data.title;
+
         showPopup(`视频ID: ${bvid}`);
         showPopup(`CID: ${cid}`);
         console.log(`PID: ${pvid}`);
+
+        //todo 获取云端数据
+        let dbResults = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({
+                action: "dbQuery",
+                url: settings.cfApiURL,
+                method: "POST",
+                cfApiKey: settings.cfApiKey,
+                body: {sql: "SELECT data FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
+            }, response => {
+                if (response.success) {
+                    resolve(response?.data?.result?.[0]?.results?.[0]);
+                } else {
+                    console.log("Background fetch error:", response.error);
+                    reject(new Error(response.error));
+                }
+            });
+        });
+
+        if(dbResults) {
+            showPopup("使用云端数据.");
+            return JSON.parse(dbResults?.data);
+        }
+
+        if (!settings.apiKey) {
+            showPopup("Please set API Key in extension settings");
+            return JSON.parse(`{"ads":[], "msg":"Please set API Key"}`);
+        }
+        if (!settings.apiURL) {
+            showPopup("Please set API URL in extension settings");
+            return JSON.parse(`{"ads":[], "msg":"Please set API URL"}`);
+        }
+        if (!settings.apiModel) {
+            showPopup("Please set AI Model in extension settings");
+            return JSON.parse(`{"ads":[], "msg":"Please set AI Model"}`);
+        }
+        if (!settings.aliApiKey) {
+            showPopup("Please set Aliyun API Key in extension settings");
+            return JSON.parse(`{"ads":[], "msg":"Please set Aliyun API Key"}`);
+        }
 
         response = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
             credentials: "include"
@@ -238,8 +265,9 @@ async function adRecognition(bvid,pvid) {
         const subtitleUrl = playerData.data?.subtitle?.subtitles?.[0]?.subtitle_url;
 
 
-        var subtitle = "";
+        let subtitle = "", type;
         if (subtitleUrl) {
+            type = '字幕';
             showPopup("使用字幕分析.");
             response = await fetch(`https:${subtitleUrl}`);
             const subtitleData = await response.json();
@@ -248,6 +276,7 @@ async function adRecognition(bvid,pvid) {
                 subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
             });
         }else if(settings.audioEnabled) {
+            type = '音频';
             showPopup("01:00 后解锁音频分析.");
             while(document.querySelector('video').currentTime < 60) {
                 await new Promise(resolve => setTimeout(resolve, 3000));
@@ -298,28 +327,38 @@ async function adRecognition(bvid,pvid) {
 
         popups.ai = showPopup("AI 分析中...",1);
         let aiResponse = await callOpenAI(subtitle);
-        for(let i = 1; i < 3 && aiResponse; i++) {
+        for(let i = 1; i < 3 && !aiResponse; i++) {
             showPopup('Re-fetch AI.');
             aiResponse = await callOpenAI(subtitle);
         }
         closePopup(popups.ai);
 
 
-        if (aiResponse == "") {
+        if (!aiResponse) {
             return JSON.parse(`{"ads":[], "msg":"AI 解析失败."}`);
         }
 
         const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
+        let resultAD;
         if (jsonMatch && jsonMatch[1]) {
             const jsonContent = jsonMatch[1].trim();
-            console.log(`bvid: ${bvid}, ad data: ${jsonContent}`);
-            return JSON.parse(jsonContent);
+            resultAD = JSON.parse(jsonContent);
+        }else {
+            try {
+                resultAD = JSON.parse(aiResponse);
+            } catch (error) {
+                return JSON.parse(`{"ads":[], "msg":"AI 分析结果获取失败."}` + error);
+            }
         }
-        try {
-            return JSON.parse(aiResponse);
-        } catch (error) {
-            return JSON.parse(`{"ads":[], "msg":"AI 分析结果获取失败."}` + error);
-        }
+        console.log(`bvid: ${bvid}, ad data: ${JSON.stringify(resultAD)}`);
+        chrome.runtime.sendMessage({
+            action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
+            body: {
+                sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data;`,
+                params: [aid, bvid, cid, JSON.stringify(resultAD), subtitle, title, type, settings.apiModel]
+            }
+        });
+        return resultAD;
     } catch (error) {
         showPopup("Error: " + error);
         console.log("Error:", error);
@@ -332,7 +371,7 @@ async function adRecognition(bvid,pvid) {
     async function callOpenAI(subtitle) {
         const requestData = {
             model: settings.apiModel,
-            messages: [{role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告"},
+            messages: [ {role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告"},
                         {role: "system", content: "如果结果匹配则继续检测原始内容前后上下文是否与广告有关联，如果有关联则把相关内容的时间范围也包括在内"},
                         {role: "system", content: "检查产品名称和广告内容是否有错别字，如果有请修正，返回的广告名称和内容不能太长，请严格以这样的json的格式返回：{\n  \"ads\": [\n    {\n      \"start_time\": \"335.88\",\n      \"end_time\": \"425.34\",\n      \"product_name\": \"产品名称\",\n      \"ad_content\": \"广告内容。\"\n    },\n  \"msg\": \"是否识别到广告\"\n  ]\n}"},
                         {role: "user", content: subtitle}]};
@@ -400,7 +439,6 @@ async function checkPopup() {
         popup.addEventListener('mouseenter', function() {
             popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(50, 50, 50, 7))';
         });
-
         popup.addEventListener('mouseleave', function() {
             popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(50, 50, 50, 0.5))';
         });
