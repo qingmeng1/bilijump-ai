@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bilibili AI Skip - 智能跳过Bilibili视频广告</title>
+    <meta name="description" content="Bilibili AI Skip 是一个 Chrome 扩展程序，使用 AI 技术自动识别并跳过 Bilibili 视频中的广告，支持字幕和音频分析。">
+    <meta name="keywords" content="Bilibili, AI, 跳过广告, Chrome 扩展">
+    <meta name="author" content="qingmeng1">
+    <link rel="icon" href="icon48.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            transition: background 0.5s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body.light-theme {
+            background: linear-gradient(135deg, #e6f0fa, #f5f7fa);
+            color: #2c3e50;
+        }
+
+        body.light-theme header {
+            background: linear-gradient(135deg, #a3bffa, #c3e0ff);
+            color: #2c3e50;
+        }
+
+        body.light-theme .btn {
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+        }
+
+        body.light-theme section h2 {
+            color: #4682b4;
+        }
+
+        body.light-theme .faq code {
+            background: #f0f4f8;
+        }
+
+        body.light-theme footer {
+            background: linear-gradient(135deg, #d6eaff, #e6f0fa);
+            color: #2c3e50;
+        }
+
+        body.light-theme footer a {
+            color: #4682b4;
+        }
+
+        body.pink-blue-theme {
+            background: linear-gradient(135deg, #f4e7f7, #e6f0fa);
+            color: #2c3e50;
+        }
+
+        body.pink-blue-theme header {
+            background: linear-gradient(135deg, #f8e1f1, #d6eaff);
+            color: #2c3e50;
+        }
+
+        body.pink-blue-theme .btn {
+            background: linear-gradient(135deg, #f9c1d6, #a3bffa);
+        }
+
+        body.pink-blue-theme section h2 {
+            color: #a3bffa;
+        }
+
+        body.pink-blue-theme .faq code {
+            background: #f8e1f1;
+        }
+
+        body.pink-blue-theme footer {
+            background: linear-gradient(135deg, #f8e1f1, #d6eaff);
+            color: #2c3e50;
+        }
+
+        body.pink-blue-theme footer a {
+            color: #a3bffa;
+        }
+
+        /* 通用样式 */
+        header {
+            text-align: center;
+            padding: 40px 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1rem;
+            opacity: 0.85;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 25px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 500;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before,
+        .btn:active::before {
+            left: 100%;
+        }
+
+        .btn:hover,
+        .btn:active {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 15px;
+        }
+
+        section {
+            margin-bottom: 40px;
+        }
+
+        section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            text-align: center;
+        }
+
+        .feature-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover,
+        .feature-card:active {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .faq {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+        }
+
+        .faq-item h3 {
+            font-size: 1.2rem;
+            color: #34495e;
+            margin-bottom: 8px;
+        }
+
+        .faq-item p {
+            font-size: 1rem;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .faq code {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            display: inline-block;
+            word-break: break-all;
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.8rem;
+        }
+
+        footer a {
+            text-decoration: none;
+        }
+
+        footer a:hover,
+        footer a:active {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 30px 10px;
+            }
+
+            header h1 {
+                font-size: 1.6rem;
+            }
+
+            header p {
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 8px 20px;
+                font-size: 0.9rem;
+            }
+
+            .container {
+                padding: 20px 10px;
+            }
+
+            section h2 {
+                font-size: 1.5rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .feature-card {
+                padding: 15px;
+            }
+
+            .feature-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .feature-card p {
+                font-size: 0.85rem;
+            }
+
+            .faq-item h3 {
+                font-size: 1.1rem;
+            }
+
+            .faq-item p {
+                font-size: 0.9rem;
+            }
+
+            footer {
+                padding: 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.4rem;
+            }
+
+            header p {
+                font-size: 0.85rem;
+            }
+
+            .btn {
+                padding: 8px 15px;
+                font-size: 0.85rem;
+            }
+
+            section h2 {
+                font-size: 1.3rem;
+            }
+
+            .feature-card {
+                padding: 12px;
+            }
+
+            .feature-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .feature-card p {
+                font-size: 0.8rem;
+            }
+
+            .faq-item h3 {
+                font-size: 1rem;
+            }
+
+            .faq-item p {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body class="light-theme">
+    <header>
+        <h1>Bilibili AI Skip</h1>
+        <p>使用 AI 技术智能跳过 Bilibili 视频广告，提升你的观看体验</p>
+        <a href="#" class="btn" id="chrome-store-btn">前往 Chrome 应用商店</a>
+    </header>
+
+    <div class="container">
+        <section id="features">
+            <h2>核心功能</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>自动跳过广告</h3>
+                    <p>通过 AI 分析视频字幕或音频，精准识别广告并自动跳过，节省你的时间。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>字幕与音频分析</h3>
+                    <p>支持字幕优先分析，无字幕时可启用音频分析，全面覆盖各种视频场景。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>自定义设置</h3>
+                    <p>支持设置 API 密钥、模型和跳过模式，满足不同用户的需求。</p>
+                </div>
+                <div class="feature-card">
+                    <h3>实时弹窗提示</h3>
+                    <p>在视频播放时显示广告信息和跳过按钮，操作直观便捷。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="faq">
+            <h2>常见问题</h2>
+            <div class="faq-item">
+                <h3>为什么需要设置 API 密钥？</h3>
+                <p>API 密钥用于调用 OpenAI 和阿里云的 AI 服务，以进行广告识别和音频分析。如果未设置密钥，扩展将无法正常工作。请在设置页面输入有效的 <code>API Key</code> 和 <code>API URL</code>。</p>
+            </div>
+            <div class="faq-item">
+                <h3>音频分析为什么需要等待？</h3>
+                <p>音频分析需要将视频音频上传到阿里云服务器并进行转录，通常需要 1 分钟左右。分析时间取决于视频长度和服务器响应速度，请耐心等待。</p>
+            </div>
+            <div class="faq-item">
+                <h3>扩展无法识别广告怎么办？</h3>
+                <p>请检查以下几点：<br>
+                    - 确保 <code>API Key</code> 和 <code>API URL</code> 配置正确。<br>
+                    - 确认视频是否有字幕或音频可用。<br>
+                    - 尝试刷新页面或重新加载扩展。<br>
+                    如果问题仍未解决，请通过 GitHub 提交问题反馈。
+                </p>
+            </div>
+            <div class="faq-item">
+                <h3>如何启用自动跳过功能？</h3>
+                <p>在扩展的设置页面中，勾选“自动跳过广告”选项即可启用。启用后，扩展会在识别到广告时自动跳到广告结束时间点，无需手动操作。</p>
+            </div>
+        </section>
+
+        <section id="contact" style="margin-bottom: 0px;">
+            <h2>联系我们</h2>
+            <p style="text-align: center;">
+                有任何问题或建议？欢迎通过以下方式联系我们：<br>
+                <a href="https://github.com/qingmeng1/bilijump-ai" target="_blank">GitHub</a> | 
+                <a href="mailto:example@email.com">发送邮件</a>
+            </p>
+        </section>
+    </div>
+
+    <footer>
+        <p>© 2025 Bilibili AI Skip. 由 <a href="https://github.com/qingmeng1">qingmeng1</a> 开发。保留所有权利。</p>
+    </footer>
+
+    <script>
+        function setThemeBasedOnHour() {
+            const now = new Date();
+            const hour = now.getHours();
+            const body = document.body;
+
+            if (hour % 2 === 0) {
+                body.classList.remove('pink-blue-theme');
+                body.classList.add('light-theme');
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('pink-blue-theme');
+            }
+        }
+
+        setThemeBasedOnHour();
+
+        function getTimeUntilNextHour() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            return (60 - minutes - 1) * 60 * 1000 + (60 - seconds) * 1000 + (1000 - milliseconds);
+        }
+
+        function scheduleThemeSwitch() {
+            const timeUntilNextHour = getTimeUntilNextHour();
+            setTimeout(() => {
+                setThemeBasedOnHour();
+                setInterval(setThemeBasedOnHour, 60 * 60 * 1000);
+            }, timeUntilNextHour);
+        }
+
+        scheduleThemeSwitch();
+
+        document.getElementById('chrome-store-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            const chromeStoreUrl = 'https://chromewebstore.google.com/detail/bilibili-ai-skip/lkhedimikicklpjmldabifgkhchnjjan';
+            window.open(chromeStoreUrl, '_blank');
+        });
+    </script>
+</body>
+</html>
