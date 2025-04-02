@@ -6,6 +6,9 @@
 
 **Bilibili AI Skip** 是一个 Chrome 扩展程序，旨在通过 AI 技术识别并自动跳过 Bilibili 视频中的广告。它支持字幕和音频分析，能够精准定位广告的开始和结束时间，并提供手动或自动跳过广告的功能。用户可以通过设置 API 密钥和模型来自定义 AI 分析行为。
 
+[![Get it on Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Get%20Now-1E90FF?style=plastic&logo=google-chrome&logoColor=white&labelColor=FF69B4)](https://chromewebstore.google.com/detail/bilibili-ai-skip/lkhedimikicklpjmldabifgkhchnjjan)
+
+---
 ## 功能特性
 
 * ​**自动跳过广告**​：通过 AI 分析视频字幕或音频，识别广告并自动跳过。
