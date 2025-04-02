@@ -22,11 +22,8 @@
 ## 安装步骤
 
 1. ​**克隆或下载项目**​：
-   **bash**
-   
-   **收起**自动换行**复制**
-   
-   `<span>git </span><span>clone</span><span> https://github.com/qingmeng1/bilijump-ai.git</span>`
+
+   `git clone https://github.com/qingmeng1/bilijump-ai.git`
    
    或者直接下载 ZIP 文件并解压。
 2. ​**加载扩展到 Chrome**​：
@@ -38,14 +35,14 @@
    
    * 点击扩展图标，打开设置页面。
    * 输入以下信息：
-     * ​**API URL**​：例如 **https://www.openai.com/v1/chat/completions**。
+     * ​**API URL**​：例如 https://www.openai.com/v1/chat/completions 。
      * ​**API Key**​：你的 OpenAI API 密钥（例如 **sk-xxxxxx...**）。
      * ​**AI Model**​：使用的 AI 模型（例如 **gpt-4o-mini**）。
      * ​**Aliyun API Key**​：阿里云 API 密钥，用于音频分析（可通过 [阿里云文档](https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen) 申请）。
    * 保存设置。
 4. ​**使用扩展**​：
    
-   * 访问 Bilibili 视频页面（例如 **https://www.bilibili.com/video/...**）。
+   * 访问 Bilibili 视频页面（例如 https://www.bilibili.com/video/xxx ）。
    * 扩展会自动运行，识别广告并根据设置跳过。
 
 ## 使用方法
@@ -65,7 +62,7 @@
 
 * ​**广告识别**​：
   * 使用 OpenAI API 分析字幕或音频内容，识别广告的开始和结束时间、产品名称及广告内容。
-  * 支持时长超过 20 秒的广告识别，并扩展到上下文相关内容。
+  * 20 秒以上的广告识别，并扩展到上下文相关内容。
 * ​**音频处理**​：
   * 通过阿里云 DashScope API 进行音频转录（使用 **paraformer-v2** 模型）。
   * 支持中英文语言提示。
@@ -81,31 +78,6 @@
 * ​**API 密钥**​：
   * OpenAI API 密钥（用于广告识别）。
   * 阿里云 API 密钥（用于音频分析）。
-
-## 贡献指南
-
-欢迎为项目贡献代码！请按照以下步骤操作：
-
-1. Fork 本仓库。
-2. 创建你的功能分支：
-   **bash**
-   
-   **收起**自动换行**复制**
-   
-   `<span>git checkout -b feature/你的功能</span>`
-3. 提交你的更改：
-   **bash**
-   
-   **收起**自动换行**复制**
-   
-   `<span>git commit -m </span><span>"添加新功能：描述"</span>`
-4. 推送到远程分支：
-   **bash**
-   
-   **收起**自动换行**复制**
-   
-   `<span>git push origin feature/你的功能</span>`
-5. 创建 Pull Request，描述你的更改。
 
 ## 常见问题
 
