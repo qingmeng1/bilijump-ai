@@ -17,6 +17,7 @@ let settings = {
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
 let popups = { audioCheck: null, task: null, ai: null, ads: [] };
+let intervals = [];
 
 (async function() {
     chrome.storage.sync.get(configKeys, res => {
@@ -50,6 +51,10 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
             if(bid !== bvid || pid !== pvid){
                 bid = bvid;
                 pid = pvid;
+                while (intervals.length > 0) {
+                    clearInterval(intervals[0]);
+                    intervals.shift();
+                }
                 if(popups.audioCheck) closePopup(popups.audioCheck);
                 if(popups.task) closePopup(popups.task);
                 if(popups.ai) closePopup(popups.ai);
@@ -76,7 +81,8 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
                     console.log(adsData);
                     if(adsData && adsData.ads.length >= 1) {
                         for (let i = 0; i < adsData.ads.length; i++) {
-                            let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content, intervalId = setInterval(skipVideoAD, 1000);
+                            let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
+                            intervals[i] = setInterval(skipVideoAD, 1000);
                             showPopup(`广告时间：${getTime(TARGET_TIME)} --> ${getTime(SKIP_TO_TIME)}`);
                             showPopup(`产品名称：${product_name}`);
                             //showPopup(`广告内容：${ad_content}`);
@@ -91,7 +97,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
                                     if(settings.autoJump){
                                         video.currentTime = SKIP_TO_TIME;
                                         showPopup('广告已跳过.');
-                                        //clearInterval(intervalId);
+                                        //clearInterval(intervals[i]);
                                     } else {
                                         if(popups.ads[i]) {
                                             document.querySelector('#skip-button').innerHTML = Math.ceil(SKIP_TO_TIME - currentTime);
@@ -159,7 +165,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
                                         playerContainer.appendChild(popup);
 
                                         closeButton.addEventListener('click', () => {
-                                            clearInterval(intervalId);
+                                            clearInterval(intervals[i]);
                                             popups.ads[i].remove();
                                         });
                                         popup.querySelector('#skip-button').addEventListener('click', () => {
@@ -175,8 +181,8 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [] };
                                 }else if(popups.ads[i]) {
                                     popups.ads[i].remove();
                                     popups.ads[i] = undefined;
-                                    if(window.location.pathname.split('/')[2] !== bvid) {
-                                        clearInterval(intervalId);
+                                    if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
+                                        clearInterval(intervals[i]);
                                         return;
                                     }
                                 }
