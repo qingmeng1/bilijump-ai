@@ -210,7 +210,7 @@ async function adRecognition(bvid,pvid) {
         });
         const videoData = await response.json();
         const aid = videoData.data.aid;
-        const cid = videoData.data.pages?.[pvid]?.cid || videoData.data.cid;
+        const cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid;
         //const cid = document.querySelector('.bpx-player-ctrl-eplist-multi-menu-item.bpx-state-multi-active-item')?.getAttribute('data-cid') || videoData.data.cid;
         const title = videoData.data.title;
 
