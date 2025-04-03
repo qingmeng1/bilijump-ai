@@ -16,8 +16,7 @@ let settings = {
 };
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
-let popups = { audioCheck: null, task: null, ai: null, ads: [] };
-let intervals = [];
+let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
 
 (async function() {
     chrome.storage.sync.get(configKeys, res => {
@@ -38,7 +37,7 @@ let intervals = [];
     );
 
 
-    let bid = '', pid = '';
+    let bid = '', pid = '', intervals = [];
     function startAdSkipping() {
         if (!settings.enabled) return;
 
@@ -54,6 +53,12 @@ let intervals = [];
                 while (intervals.length > 0) {
                     clearInterval(intervals[0]);
                     intervals.shift();
+                }
+                while (popups.others.length > 0) {
+                    if(popups.others[0]) {
+                        popups.others[0].remove();
+                    }
+                    popups.others.shift();
                 }
                 if(popups.audioCheck) closePopup(popups.audioCheck);
                 if(popups.task) closePopup(popups.task);
@@ -285,7 +290,10 @@ async function adRecognition(bvid,pvid) {
             type = '音频';
             showPopup("01:00 后解锁音频分析.");
             while(document.querySelector('video').currentTime < 60) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
+                    return JSON.parse(`{"ads":[], "msg":"上下文已切换."}`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
             if (!settings.autoAudio && ! await checkPopup()) {
@@ -332,6 +340,7 @@ async function adRecognition(bvid,pvid) {
         }
 
         popups.ai = showPopup("AI 分析中...",1);
+        popups.others.push(popups.ai);
         let aiResponse = await callOpenAI(subtitle);
         for(let i = 1; i < 3 && !aiResponse; i++) {
             showPopup('Re-fetch AI.');
@@ -410,7 +419,14 @@ let popupCount = 0;
 function closePopup(popup) {
     if(popup) {
         popup.remove();
-        popup == null;
+        for (const key in popups) {
+            if (key === 'ads') continue;
+            if (popups[key] === popup) {
+                popups[key] = null;
+                break;
+            }
+        }
+        popups.ads = popups.ads.filter(item => item !== popup);
         popupCount--;
         adjustPopupPositions();
     }
@@ -467,6 +483,7 @@ async function checkPopup() {
             resolve(false);
         });
         popups.audioCheck = popup;
+        popups.others.push(popups.audioCheck);
     })
     return userChoice;
 }
@@ -576,6 +593,7 @@ async function waitForTaskCompletion(taskId) {
         case "PENDING":
             if (!popups.task) {
                 popups.task = showPopup("音频解析中...", 1);
+                popups.others.push(popups.task);
             }
             await new Promise(resolve => setTimeout(resolve, 5000));
             break;

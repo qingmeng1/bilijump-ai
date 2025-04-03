@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Bilibili AI Skip",
-  "version": "1.0",
-  "description": "Automatically skip ads in Bilibili videos using AI",
+  "version": "2.3.2",
+  "description": "一个使用 AI 技术自动跳过 Bilibili 视频广告的 Chrome 扩展程序。",
   "host_permissions": [
     "*://dashscope.aliyuncs.com/*",
     "*://api.cloudflare.com/*",
@@ -34,5 +34,5 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "homepage_url": "https://github.com/qingmeng1/bilijump-ai"
+  "homepage_url": "https://oooo.uno"
 }
