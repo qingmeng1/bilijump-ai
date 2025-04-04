@@ -538,7 +538,7 @@ async function submitTranscriptionTask(audioURL) {
   const requestBody = {
     model: "paraformer-v2",
     input: { file_urls: [audioURL] },
-    parameters: { channel_id: [0], language_hints: ["zh", "en"] }
+    parameters: { channel_id: [0], language_hints: ["zh", "en", "ja", "yue", "ko", "de", "fr", "ru"] }
   };
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({
