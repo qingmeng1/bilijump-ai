@@ -42,27 +42,20 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
         if (!settings.enabled) return;
 
         showPopup(`AI skip start.`);
-        showPopup(`自动跳过：${settings.autoJump}`);
-        showPopup(`音频分析：${settings.audioEnabled}`);
+        //showPopup(`自动跳过：${settings.autoJump}`);
+        //showPopup(`音频分析：${settings.audioEnabled}`);
         setInterval(async function(){
-            const bvid = window.location.pathname.split('/')[2];
-            const pvid = new URLSearchParams(window.location.search).get('p');;
+            const bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');;
             if(bid !== bvid || pid !== pvid){
-                bid = bvid;
-                pid = pvid;
-                while (intervals.length > 0) {
-                    clearInterval(intervals[0]);
-                    intervals.shift();
-                }
-                while (popups.others.length > 0) {
-                    if(popups.others[0]) {
-                        popups.others[0].remove();
-                    }
-                    popups.others.shift();
-                }
-                if(popups.audioCheck) closePopup(popups.audioCheck);
-                if(popups.task) closePopup(popups.task);
-                if(popups.ai) closePopup(popups.ai);
+                bid = bvid, pid = pvid;
+
+                while (intervals.length) clearInterval(intervals.shift());
+                while (popups.others.length) popups.others.shift()?.remove();
+                while (popups.ads.length) popups.ads.shift()?.remove();
+
+                closePopup(popups.audioCheck);
+                closePopup(popups.task);
+                closePopup(popups.ai);
 
                 let video = document.querySelector('video');
                 while(!video.duration) {
@@ -201,32 +194,23 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
         }, 1000);
     }
 
-    chrome.storage.onChanged.addListener(function(changes, namespace) {
-        if (changes.autoJump) settings.autoJump = changes.autoJump.newValue;
-        if (changes.enabled) {
-            settings.enabled = changes.enabled.newValue;
-            if (!settings.enabled) location.reload();
-            else startAdSkipping();
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        for (const [key, { newValue }] of Object.entries(changes)) {
+            settings[key] = newValue;
+            if (key === 'enabled') {
+                newValue ? startAdSkipping() : location.reload();
+            }
         }
-        if (changes.apiKey) settings.apiKey = changes.apiKey.newValue;
-        if (changes.apiURL) settings.apiURL = changes.apiURL.newValue;
-        if (changes.apiModel) settings.apiModel = changes.apiModel.newValue;
     });
 })();
 
 async function adRecognition(bvid,pvid) {
     try {
-        let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
-            credentials: "include"
-        });
-        const videoData = await response.json();
-        const aid = videoData.data.aid;
-        const cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid;
-        //const cid = document.querySelector('.bpx-player-ctrl-eplist-multi-menu-item.bpx-state-multi-active-item')?.getAttribute('data-cid') || videoData.data.cid;
-        const title = videoData.data.title;
+        let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
+        const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid, title = videoData.data.title;
 
-        showPopup(`视频ID: ${bvid}`);
-        showPopup(`CID: ${cid}`);
+        //showPopup(`视频ID: ${bvid}`);
+        //showPopup(`CID: ${cid}`);
         console.log(`PID: ${pvid}`);
 
         //todo 获取云端数据
@@ -252,28 +236,17 @@ async function adRecognition(bvid,pvid) {
             return JSON.parse(dbResults?.data);
         }
 
-        if (!settings.apiKey) {
-            showPopup("Please set API Key in extension settings");
-            return JSON.parse(`{"ads":[], "msg":"Please set API Key"}`);
-        }
-        if (!settings.apiURL) {
-            showPopup("Please set API URL in extension settings");
-            return JSON.parse(`{"ads":[], "msg":"Please set API URL"}`);
-        }
-        if (!settings.apiModel) {
-            showPopup("Please set AI Model in extension settings");
-            return JSON.parse(`{"ads":[], "msg":"Please set AI Model"}`);
-        }
-        if (!settings.aliApiKey) {
-            showPopup("Please set Aliyun API Key in extension settings");
-            return JSON.parse(`{"ads":[], "msg":"Please set Aliyun API Key"}`);
+        for(const key of ["apiKey", "apiURL", "apiModel", "aliApiKey"]) {
+            if(!settings[key]) {
+                showPopup(`Please set ${key} in extension settings`);
+                return JSON.parse(`{"ads":[], "msg":"Please set ${key}"}`);
+            }
         }
 
         response = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
             credentials: "include"
         });
-        const playerData = await response.json();
-        const subtitleUrl = playerData.data?.subtitle?.subtitles?.[0]?.subtitle_url;
+        const playerData = await response.json(), subtitleUrl = playerData.data?.subtitle?.subtitles?.[0]?.subtitle_url;
 
 
         let subtitle = "", type;
@@ -304,8 +277,7 @@ async function adRecognition(bvid,pvid) {
             response = await fetch(`https://api.bilibili.com/x/player/wbi/playurl?bvid=${bvid}&cid=${cid}&qn=0&fnver=0&fnval=80&fourk=1`, {
                 credentials: "include"
             });
-            const playerData = await response.json();
-            const audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
+            const playerData = await response.json(), audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
 
             if(!audioUrl) {
                 return JSON.parse(`{"ads":[], "msg":"获取不到音频文件."}`);
@@ -333,9 +305,8 @@ async function adRecognition(bvid,pvid) {
                 }
             }
         }
-        
 
-        if (subtitle == "") {
+        if (!subtitle) {
             return JSON.parse(`{"ads":[], "msg":"无解析内容."}`);
         }
 
@@ -386,7 +357,7 @@ async function adRecognition(bvid,pvid) {
     async function callOpenAI(subtitle) {
         const requestData = {
             model: settings.apiModel,
-            messages: [ {role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告"},
+            messages: [ {role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告，如果内容是非中文需要先翻译为中文"},
                         {role: "system", content: "如果结果匹配则继续检测原始内容前后上下文是否与广告有关联，如果有关联则把相关内容的时间范围也包括在内"},
                         {role: "system", content: "检查产品名称和广告内容是否有错别字，如果有请修正，返回的广告名称和内容不能太长，请严格以这样的json的格式返回：{\n  \"ads\": [\n    {\n      \"start_time\": \"335.88\",\n      \"end_time\": \"425.34\",\n      \"product_name\": \"产品名称\",\n      \"ad_content\": \"广告内容。\"\n    },\n  \"msg\": \"是否识别到广告\"\n  ]\n}"},
                         {role: "user", content: subtitle}]};
@@ -551,7 +522,7 @@ async function submitTranscriptionTask(audioURL) {
       if (response.success) {
         resolve(response.data.output.task_id);
       } else {
-        console.error("Background fetch error:", response.error);
+        console.log("Background fetch error:", response.error);
         reject(new Error(response.error));
       }
     });
