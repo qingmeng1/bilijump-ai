@@ -58,7 +58,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
                 closePopup(popups.ai);
 
                 let video = document.querySelector('video');
-                while(!video.duration) {
+                while(!video?.duration) {
                     await new Promise(resolve => setTimeout(resolve, 3000));
                     video = document.querySelector('video');
                 }
@@ -284,7 +284,7 @@ async function adRecognition(bvid,pvid) {
             }
             showPopup("提交音频文件.");
             console.log("audioUrl: " + audioUrl);
-            const taskId = await submitTranscriptionTask("https://blob20.art/bilibili/download?url="+escape(audioUrl));
+            const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+escape(audioUrl));
             console.log("Task submitted successfully, Task ID:", taskId);
 
             showPopup("等待音频分析结果.");
