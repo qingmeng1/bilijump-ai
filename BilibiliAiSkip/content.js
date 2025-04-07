@@ -236,7 +236,7 @@ async function adRecognition(bvid,pvid) {
             return JSON.parse(dbResults?.data);
         }
 
-        for(const key of ["apiKey", "apiURL", "apiModel", "aliApiKey"]) {
+        for(const key of ["apiKey", "apiURL", "apiModel"]) {
             if(!settings[key]) {
                 showPopup(`Please set ${key} in extension settings`);
                 return JSON.parse(`{"ads":[], "msg":"Please set ${key}"}`);
@@ -260,6 +260,10 @@ async function adRecognition(bvid,pvid) {
                 subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
             });
         }else if(settings.audioEnabled) {
+            if(!settings["aliApiKey"]) {
+                showPopup(`Please set aliApiKey in extension settings`);
+                return JSON.parse(`{"ads":[], "msg":"Please set aliApiKey"}`);
+            }
             type = '音频';
             showPopup("01:00 后解锁音频分析.");
             while(document.querySelector('video').currentTime < 60) {
