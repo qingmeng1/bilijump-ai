@@ -16,7 +16,7 @@ let settings = {
 };
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
-let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
+let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now_cid;
 
 (async function() {
     chrome.storage.sync.get(configKeys, res => {
@@ -95,6 +95,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
                                     if(settings.autoJump){
                                         video.currentTime = SKIP_TO_TIME;
                                         showPopup('广告已跳过.');
+                                        updateTimes(now_cid, SKIP_TO_TIME - TARGET_TIME);
                                         //clearInterval(intervals[i]);
                                     } else {
                                         if(popups.ads[i]) {
@@ -172,6 +173,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []};
                                             popups.ads[i] = undefined;
                                             video.currentTime = SKIP_TO_TIME;
                                             showPopup('广告已跳过.');
+                                            updateTimes(now_cid, SKIP_TO_TIME - TARGET_TIME);
                                         });
 
                                         popups.ads[i] = popup;
@@ -208,6 +210,7 @@ async function adRecognition(bvid,pvid) {
     try {
         let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
         const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid, title = videoData.data.title;
+        now_cid = cid;
 
         //showPopup(`视频ID: ${bvid}`);
         //showPopup(`CID: ${cid}`);
@@ -340,7 +343,7 @@ async function adRecognition(bvid,pvid) {
                 return JSON.parse(`{"ads":[], "msg":"AI 分析结果获取失败."}` + error);
             }
         }
-        console.log(`bvid: ${bvid}, ad data: ${JSON.stringify(resultAD)}`);
+        console.log(`CID: ${cid}, ad data: ${JSON.stringify(resultAD)}`);
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
@@ -361,7 +364,7 @@ async function adRecognition(bvid,pvid) {
     async function callOpenAI(subtitle) {
         const requestData = {
             model: settings.apiModel,
-            messages: [ {role: "system", content: "你是一个广告识别助手，我会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告，如果内容是非中文需要先翻译为中文"},
+            messages: [ {role: "system", content: "你是一个广告识别助手，用户会给你发送一份视频的字幕，请识别广告在该视频中的开始与结束时间，产品名称，广告内容；只需要识别时长在20秒以上的广告，如果内容是非中文需要先翻译为中文"},
                         {role: "system", content: "如果结果匹配则继续检测原始内容前后上下文是否与广告有关联，如果有关联则把相关内容的时间范围也包括在内"},
                         {role: "system", content: "检查产品名称和广告内容是否有错别字，如果有请修正，返回的广告名称和内容不能太长，请严格以这样的json的格式返回：{\n  \"ads\": [\n    {\n      \"start_time\": \"335.88\",\n      \"end_time\": \"425.34\",\n      \"product_name\": \"产品名称\",\n      \"ad_content\": \"广告内容。\"\n    },\n  \"msg\": \"是否识别到广告\"\n  ]\n}"},
                         {role: "user", content: subtitle}]};
@@ -607,4 +610,14 @@ function generateSubtitle(transcription) {
     });
     
     return subtitle;
+}
+
+function updateTimes(cid, skip_time) {
+     chrome.runtime.sendMessage({
+        action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
+        body: {
+            sql: `UPDATE bilijump SET times = times + 1, skip_time = skip_time + ? WHERE cid = ?;`,
+            params: [Math.ceil(skip_time), cid]
+        }
+    });
 }
