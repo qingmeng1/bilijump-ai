@@ -179,6 +179,60 @@
                 transform: translateX(22px);
             }
         }
+
+        #apiURLSelect {
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background: #fdfdfd;
+            font-size: 13px;
+            color: #2c3e50;
+            padding: 5px;
+        }
+
+        #apiURLSelect:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 4px rgba(52, 152, 219, 0.3);
+        }
+
+        .dropdown-option {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+
+        .dropdown-option {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dropdown-option:hover {
+            background: #f7f9fc;
+        }
+
+        .dropdown-option:active {
+            background: #e9ecef;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -203,7 +257,15 @@
     </div>
     <div class="setting">
         <label for="apiURL">API URL</label>
-        <input type="text" id="apiURL" placeholder="Enter API URL">
+        <div style="position: relative;">
+            <input type="text" id="apiURL" placeholder="Enter API URL or click for options">
+            <div id="apiURLDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid #e9ecef; border-radius: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); z-index: 10; max-height: 150px; overflow-y: auto;">
+                <div class="dropdown-option">free, only gpt-4o-mini</div>
+                <div class="dropdown-option" data-value="https://yunwu.ai/v1/chat/completions">yunwu api <a href="https://yunwu.ai" target="_blank">register</a></div>
+                <div class="dropdown-option" data-value="https://opus.gptuu.com/v1/chat/completions">dream api <a href="https://opus.gptuu.com" target="_blank">register</a></div>
+                <div class="dropdown-option" data-value="https://api.openai.com/v1/chat/completions">oaipro api <a href="https://api.openai.com" target="_blank">register</a></div>
+            </div>
+        </div>
         <small>(e.g., https://www.openai.com/v1/chat/completions)</small>
     </div>
     <div class="setting">

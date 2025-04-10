@@ -2,8 +2,8 @@ let settings = {
     enabled: true,
     autoJump: false,
     apiKey: '',
-    apiURL: 'https://www.openai.com/v1/chat/completions',
-    apiModel: 'gpt-4o-mini',
+    apiURL: '',
+    apiModel: '',
 
     audioEnabled: true,
     autoAudio: false,
