@@ -217,6 +217,8 @@
 
         .dropdown-option:hover {
             background: #f7f9fc;
+            border: 1px solid #3498db;
+            border-radius: 6px;
         }
 
         .dropdown-option:active {
@@ -233,6 +235,7 @@
             color: #2980b9;
             text-decoration: underline;
         }
+
     </style>
 </head>
 <body>
@@ -259,8 +262,8 @@
         <label for="apiURL">API URL</label>
         <div style="position: relative;">
             <input type="text" id="apiURL" placeholder="Enter API URL or click for options">
-            <div id="apiURLDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid #e9ecef; border-radius: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); z-index: 10; max-height: 150px; overflow-y: auto;">
-                <div class="dropdown-option">free, only gpt-4o-mini</div>
+            <div id="apiURLDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid rgba(89,184,93,0.5); border-radius: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); z-index: 10; max-height: 150px; overflow-y: auto;">
+                <div class="dropdown-option" style="color: #4fcf54;">free, only gpt-4o-mini</div>
                 <div class="dropdown-option" data-value="https://yunwu.ai/v1/chat/completions">yunwu api <a href="https://yunwu.ai" target="_blank">register</a></div>
                 <div class="dropdown-option" data-value="https://opus.gptuu.com/v1/chat/completions">dream api <a href="https://opus.gptuu.com" target="_blank">register</a></div>
                 <div class="dropdown-option" data-value="https://api.oaipro.com//v1/chat/completions">oaipro api <a href="https://api.oaipro.com" target="_blank">register</a></div>
