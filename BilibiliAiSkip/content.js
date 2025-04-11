@@ -319,7 +319,8 @@ async function adRecognition(bvid,pvid) {
 
         popups.ai = showPopup("AI 分析中...",1);
         popups.others.push(popups.ai);
-        let aiResponse = await callOpenAI(subtitle);
+
+        let data = await callOpenAI(subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
         for(let i = 1; i < 3 && !aiResponse; i++) {
             showPopup('Re-fetch AI.');
             aiResponse = await callOpenAI(subtitle);
@@ -347,8 +348,8 @@ async function adRecognition(bvid,pvid) {
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
-                sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data;`,
-                params: [aid, bvid, cid, JSON.stringify(resultAD), subtitle, title, type, settings.apiModel]
+                sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model, tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data;`,
+                params: [aid, bvid, cid, JSON.stringify(resultAD), subtitle, title, type, settings.apiModel, total_tokens]
             }
         });
         return resultAD;
@@ -388,7 +389,7 @@ async function adRecognition(bvid,pvid) {
             return "";
         }
 
-        return data.choices[0].message.content;
+        return data;
     }
 }
 
