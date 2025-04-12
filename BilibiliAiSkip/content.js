@@ -59,7 +59,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
 
                 let video = document.querySelector('video');
                 while(!video?.duration) {
-                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     video = document.querySelector('video');
                 }
                 showPopup(`视频长度：${Math.ceil(video.duration)}s`);
@@ -78,12 +78,29 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     console.log(`Skip data`);
                     console.log(adsData);
                     if(adsData && adsData.ads.length >= 1) {
+
+                        
                         for (let i = 0; i < adsData.ads.length; i++) {
                             let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
                             intervals[i] = setInterval(skipVideoAD, 1000);
                             showPopup(`广告时间：${getTime(TARGET_TIME)} --> ${getTime(SKIP_TO_TIME)}`);
                             showPopup(`产品名称：${product_name}`);
                             //showPopup(`广告内容：${ad_content}`);
+                            new Promise(async resolve => {
+                                let progress = document.getElementsByClassName('bpx-player-progress-schedule');
+                                while(!progress || progress?.length == 0) {
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                    progress = document.getElementsByClassName('bpx-player-progress-schedule');
+                                }
+                                for (var p = 0; p < progress.length; p++) {
+                                    var ad_progress = document.createElement('div');
+                                    ad_progress.className = 'bpx-player-progress-schedule-current';
+                                    ad_progress.style.transform = `translate(${(TARGET_TIME/video.duration)*100}%, 0%) 
+                                                                  scaleX(${(SKIP_TO_TIME-TARGET_TIME)/video.duration})`;
+                                    ad_progress.style.backgroundColor = '#df9938';
+                                    progress[p].appendChild(ad_progress);
+                                }
+                            });
                             function skipVideoAD() {
                                 let video = document.querySelector('video');
                                 if (!video) {
