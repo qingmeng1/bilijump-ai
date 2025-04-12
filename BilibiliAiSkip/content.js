@@ -242,7 +242,7 @@ async function adRecognition(bvid,pvid) {
         for(const key of ["apiKey", "apiURL", "apiModel"]) {
             if(!settings[key]) {
                 showPopup(`Please set ${key} in extension settings`);
-                return JSON.parse(`{"ads":[], "msg":"Please set ${key}"}`);
+                return {ads:[], msg:`Please set ${key}`};
             }
         }
 
@@ -265,19 +265,19 @@ async function adRecognition(bvid,pvid) {
         }else if(settings.audioEnabled) {
             if(!settings["aliApiKey"]) {
                 showPopup(`Please set aliApiKey in extension settings`);
-                return JSON.parse(`{"ads":[], "msg":"Please set aliApiKey"}`);
+                return {ads:[], msg:"Please set aliApiKey"};
             }
             type = '音频';
             showPopup("01:00 后解锁音频分析.");
             while(document.querySelector('video').currentTime < 60) {
                 if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
-                    return JSON.parse(`{"ads":[], "msg":"上下文已切换."}`);
+                    return {ads:[], msg:"上下文已切换."};
                 }
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
             if (!settings.autoAudio && ! await checkPopup()) {
-                return JSON.parse(`{"ads":[], "msg":"用户拒绝音频分析, 识别结束."}`);
+                return {ads:[], msg:"用户拒绝音频分析, 识别结束."};
             }
 
             showPopup("使用音频分析.");
@@ -287,7 +287,7 @@ async function adRecognition(bvid,pvid) {
             const playerData = await response.json(), audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
 
             if(!audioUrl) {
-                return JSON.parse(`{"ads":[], "msg":"获取不到音频文件."}`);
+                return {ads:[], msg:"获取不到音频文件."};
             }
             showPopup("提交音频文件.");
             console.log("audioUrl: " + audioUrl);
@@ -305,16 +305,16 @@ async function adRecognition(bvid,pvid) {
                 } else {
                     console.log(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
                     if(result.code === "SUCCESS_WITH_NO_VALID_FRAGMENT") {
-                        return JSON.parse(`{"ads":[], "msg":"音频无有效片段."}`);
+                        return {ads:[], msg:"音频无有效片段."};
                     } else {
-                        return JSON.parse(`{"ads":[], "msg":"音频解析失败：${result.message}"}`);
+                        return {ads:[], msg:`音频解析失败：${result.message}`};
                     }
                 }
             }
         }
 
         if (!subtitle) {
-            return JSON.parse(`{"ads":[], "msg":"无解析内容."}`);
+            return {ads:[], msg:"无解析内容."};
         }
 
         popups.ai = showPopup("AI 分析中...",1);
@@ -329,7 +329,7 @@ async function adRecognition(bvid,pvid) {
 
 
         if (!aiResponse) {
-            return JSON.parse(`{"ads":[], "msg":"AI 解析失败."}`);
+            return {ads:[], msg:"AI 解析失败."};
         }
 
         const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
@@ -341,7 +341,7 @@ async function adRecognition(bvid,pvid) {
             try {
                 resultAD = JSON.parse(aiResponse);
             } catch (error) {
-                return JSON.parse(`{"ads":[], "msg":"AI 分析结果获取失败."}` + error);
+                return {ads:[], msg:"AI 分析结果获取失败. " + error};
             }
         }
         console.log(`CID: ${cid}, ad data: ${JSON.stringify(resultAD)}`);
