@@ -9,6 +9,9 @@
 [![Visit Official Website](https://img.shields.io/badge/Official%20Website-Visit%20Now-8E44AD?style=plastic&logo=globe&logoColor=white&labelColor=00CED1)](https://oooo.uno)
 [![Get it on Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Get%20Now-1E90FF?style=plastic&logo=google-chrome&logoColor=white&labelColor=FF69B4)](https://chromewebstore.google.com/detail/lkhedimikicklpjmldabifgkhchnjjan)
 
+**v2.3.5 更新：**
+在进度条中广告部分修改为橙色，让广告进度更清晰。
+
 **v2.3.4 更新：**
 添加一个内置 api（作者付费，仅支持 gpt-4o-mini）和三个优质第三方 api 选项。
 
