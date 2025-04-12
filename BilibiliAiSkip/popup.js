@@ -1,11 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const keys = ['autoJump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
+
+    let response = await fetch(`https://dns.google/resolve?name=${escape('bilijump-ai-api-config.oooo.uno')}&type=TXT`);
+    let aiconfig = await response.json();
     
-    const defaultSettings = {
-        apiKey: 'sk-rB1NRr1PoTHGYWZFFXB387us9kYfS85VD6QbnS95KEWlpbHh',
-        apiURL: 'https://yunwu.ai/v1/chat/completions',
-        apiModel: 'gpt-4o-mini'
-    };
+    const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
 
     chrome.storage.sync.get(keys, result => {
         chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {

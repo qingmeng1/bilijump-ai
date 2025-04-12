@@ -1,24 +1,15 @@
-let settings = {
-    enabled: true,
-    autoJump: false,
-    apiKey: '',
-    apiURL: '',
-    apiModel: '',
-
-    audioEnabled: true,
-    autoAudio: false,
-    aliApiURL: "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription",
-    aliTaskURL: "https://dashscope.aliyuncs.com/api/v1/tasks/",
-    aliApiKey: "",
-
-    cfApiKey: "Dmlpe9TkvsvBCE0N-FkqeRkN5ANCyHTnUSnAtGCH",
-    cfApiURL: "https://api.cloudflare.com/client/v4/accounts/34c49ed8e1d2bd41c330fb65de4c5890/d1/database/c1ad567a-2375-49b4-83e2-d1de52a0902f/query",
-};
+let settings;
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
 let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now_cid;
 
 (async function() {
+
+    let configresp = await fetch(`https://dns.google/resolve?name=${escape('bilijump-config.oooo.uno')}&type=TXT`);
+    let config = await configresp.json();
+    
+    settings = JSON.parse(config?.Answer?.[0]?.data);
+
     chrome.storage.sync.get(configKeys, res => {
         configKeys.forEach(k => settings[k] = res[k] ?? settings[k]);
         startAdSkipping();
@@ -78,8 +69,6 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     console.log(`Skip data`);
                     console.log(adsData);
                     if(adsData && adsData.ads.length >= 1) {
-
-                        
                         for (let i = 0; i < adsData.ads.length; i++) {
                             let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
                             intervals[i] = setInterval(skipVideoAD, 1000);
