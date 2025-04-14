@@ -7,20 +7,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
 
     chrome.storage.sync.get(keys, result => {
-        chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-            const apply = defaults => keys.forEach(k => {
-                const el = document.getElementById(k);
-                const val = result[k] ?? defaults[k] ?? (el.type === 'checkbox' ? false : '');
-                el[el.type === 'checkbox' ? 'checked' : 'value'] = val;
-                el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', save);
-            });
-
-            if (tab?.url.match(/https?:\/\/.*\.bilibili\.com\/video\/.*/)) {
-                chrome.tabs.sendMessage(tab.id, { action: 'getDefaultSettings' }, 
-                    r => apply(chrome.runtime.lastError ? {} : r?.settings || {}));
-            } else {
-                apply({});
-            }
+        const apply = defaults => keys.forEach(k => {
+            const el = document.getElementById(k);
+            const val = result[k] ?? defaults[k] ?? (el.type === 'checkbox' ? false : '');
+            el[el.type === 'checkbox' ? 'checked' : 'value'] = val;
+            el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', save);
+        });
+        chrome.storage.sync.get('config', result => {
+            apply(result?.config || {});
         });
     });
 
@@ -70,9 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiURLDropdown.style.display = 'none';
 
             if (option.textContent.trim() === 'free, only gpt-4o-mini') {
-                document.getElementById('apiKey').value = defaultSettings.apiKey;
-                document.getElementById('apiURL').value = defaultSettings.apiURL;
-                document.getElementById('apiModel').value = defaultSettings.apiModel;
+                document.getElementById('apiKey').value = defaultSettings?.apiKey;
+                document.getElementById('apiURL').value = defaultSettings?.apiURL;
+                document.getElementById('apiModel').value = defaultSettings?.apiModel;
             }else {
                 document.getElementById('apiKey').value = '';
                 document.getElementById('apiModel').value = '';

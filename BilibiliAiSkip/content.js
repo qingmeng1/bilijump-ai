@@ -4,21 +4,15 @@ const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnab
 let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now_cid;
 
 (async function() {
-
-    let configresp = await fetch(`https://dns.google/resolve?name=${escape('bilijump-config.oooo.uno')}&type=TXT`);
-    let config = await configresp.json();
-    
-    settings = JSON.parse(config?.Answer?.[0]?.data);
+    chrome.storage.sync.get('config', result => {
+        settings = result.config;
+    });
 
     chrome.storage.sync.get(configKeys, res => {
         configKeys.forEach(k => settings[k] = res[k] ?? settings[k]);
         startAdSkipping();
     });
-    chrome.runtime.onMessage.addListener(({ action }, _, res) => 
-        action === 'getDefaultSettings' && res({ 
-            settings: Object.fromEntries(configKeys.map(k => [k, settings[k]])) 
-        })
-    );
+    
     chrome.storage.onChanged.addListener(changes => 
         Object.entries(changes).forEach(([k, v]) => {
             if (!configKeys.includes(k)) return;
@@ -297,7 +291,7 @@ async function adRecognition(bvid,pvid) {
             }
             showPopup("提交音频文件.");
             console.log("audioUrl: " + audioUrl);
-            const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+escape(audioUrl));
+            const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
             console.log("Task submitted successfully, Task ID:", taskId);
 
             showPopup("等待音频分析结果.");
