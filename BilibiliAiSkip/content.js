@@ -62,7 +62,14 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     }
                     console.log(`Skip data`);
                     console.log(adsData);
-                    if(adsData && adsData.ads.length >= 1) {
+
+                    new Promise(async resolve => {
+                        document.querySelectorAll('.bpx-player-progress-schedule-current').forEach(element => {
+                            element.style.backgroundColor = '#13c58ae6';
+                        });
+                    });
+
+                    if(adsData && adsData.ads.length > 0) {
                         for (let i = 0; i < adsData.ads.length; i++) {
                             let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
                             intervals[i] = setInterval(skipVideoAD, 1000);
