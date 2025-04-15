@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const keys = ['autoJump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
 
-    let response = await fetch(`https://dns.google/resolve?name=${escape('bilijump-ai-api-config.oooo.uno')}&type=TXT`);
+    let response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent('bilijump-ai-api-config.oooo.uno')}&type=TXT`);
     let aiconfig = await response.json();
     
     const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const settings = Object.fromEntries(keys.map(k => {
             const el = document.getElementById(k);
             return [k, el.type === 'checkbox' ? el.checked : el.value.trim()];
-        }));
+    }));
         
         chrome.storage.sync.set(settings, () => {
             const s = document.getElementById('status');
