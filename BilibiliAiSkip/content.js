@@ -82,6 +82,10 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                     await new Promise(resolve => setTimeout(resolve, 1000));
                                     progress = document.getElementsByClassName('bpx-player-progress-schedule');
                                 }
+
+                                let segment_progress = document.getElementsByClassName('bpx-player-progress-schedule-segment');
+                                if(progress?.length > 0) return;
+
                                 for (var p = 0; p < progress.length; p++) {
                                     var ad_progress = document.createElement('div');
                                     ad_progress.className = 'bpx-player-progress-schedule-current';
