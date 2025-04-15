@@ -70,6 +70,15 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     });
 
                     if(adsData && adsData.ads.length > 0) {
+                        let progress = document.getElementsByClassName('bpx-player-progress-schedule');
+                        while(!progress || progress?.length == 0) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            progress = document.getElementsByClassName('bpx-player-progress-schedule');
+                        }
+                        let segment_progress = document.getElementsByClassName('bpx-player-progress-schedule-segment');
+                        let player_progress = document.getElementsByClassName('bpx-player-progress');
+                        let shadow_progress = document.getElementsByClassName('bpx-player-shadow-progress-schedule-wrap');
+                        
                         for (let i = 0; i < adsData.ads.length; i++) {
                             let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
                             intervals[i] = setInterval(skipVideoAD, 1000);
@@ -77,22 +86,24 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                             showPopup(`产品名称：${product_name}`);
                             //showPopup(`广告内容：${ad_content}`);
                             new Promise(async resolve => {
-                                let progress = document.getElementsByClassName('bpx-player-progress-schedule');
-                                while(!progress || progress?.length == 0) {
-                                    await new Promise(resolve => setTimeout(resolve, 1000));
-                                    progress = document.getElementsByClassName('bpx-player-progress-schedule');
-                                }
-
-                                let segment_progress = document.getElementsByClassName('bpx-player-progress-schedule-segment');
-                                if(segment_progress?.length > 0) return;
-
-                                for (var p = 0; p < progress.length; p++) {
+                                if(segment_progress.length > 0) {
                                     var ad_progress = document.createElement('div');
                                     ad_progress.className = 'bpx-player-progress-schedule-current';
                                     ad_progress.style.transform = `translate(${(TARGET_TIME/video.duration)*100}%, 0%) 
                                                                   scaleX(${(SKIP_TO_TIME-TARGET_TIME)/video.duration})`;
                                     ad_progress.style.backgroundColor = '#df9938';
-                                    progress[p].appendChild(ad_progress);
+                                    ad_progress.style.zIndex = 'auto';
+                                    player_progress?.[0]?.appendChild(ad_progress);
+                                    shadow_progress?.[0]?.appendChild(ad_progress.cloneNode(true));
+                                }else {
+                                    for (var p = 0; p < progress.length; p++) {
+                                        var ad_progress = document.createElement('div');
+                                        ad_progress.className = 'bpx-player-progress-schedule-current';
+                                        ad_progress.style.transform = `translate(${(TARGET_TIME/video.duration)*100}%, 0%) 
+                                                                      scaleX(${(SKIP_TO_TIME-TARGET_TIME)/video.duration})`;
+                                        ad_progress.style.backgroundColor = '#df9938';
+                                        progress[p].appendChild(ad_progress);
+                                    }
                                 }
                             });
                             function skipVideoAD() {
