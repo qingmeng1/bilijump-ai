@@ -1,4 +1,5 @@
 let settings;
+let banModels;
 
 const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
 let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now_cid;
@@ -6,6 +7,9 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
 (async function() {
     chrome.storage.sync.get('config', result => {
         settings = result.config;
+    });
+    chrome.storage.sync.get('banModels', result => {
+        banModels = result.banModels;
     });
 
     chrome.storage.sync.get(configKeys, res => {
@@ -229,6 +233,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
 })();
 
 async function adRecognition(bvid,pvid) {
+
     try {
         let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
         const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid, title = videoData.data.title;
@@ -266,6 +271,11 @@ async function adRecognition(bvid,pvid) {
                 showPopup(`Please set ${key} in extension settings`);
                 return {ads:[], msg:`Please set ${key}`};
             }
+        }
+
+        if (banModels.includes(settings.apiModel)) {
+            showPopup(`禁用 ${settings.apiModel} 模型，效果太差`);
+            return {ads:[], msg: `请使用其他模型`};
         }
 
         response = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
@@ -394,53 +404,60 @@ async function adRecognition(bvid,pvid) {
         const requestData = {
             model: settings.apiModel,
             messages: [ {role: "system", content: `
-                                                    请按照以下步骤分析提供的字幕内容（包含标题、时间轴和文本），识别可能存在的广告段落：
+请按照以下步骤分析提供的字幕内容（包含标题、时间轴和文本），识别可能存在的广告段落：
 
-                                                    1. **基础特征扫描**
+1. **基础特征扫描**
 
-                                                    * 关键词检测：查找以下类型词汇
-                                                      √ 直接推广类（赞助、促销、限时优惠）
-                                                      √ 联系信息类（官网、二维码、400电话）
-                                                      √ 品牌标识类（"点击下方链接"、"关注公众号"）
-                                                    * 结构特征分析：
-                                                      √ 固定开头/结尾模板（如"本节目由...赞助"）
-                                                      √ 重复出现的品牌名称（≥3次非常规提及）
+* 关键词检测：查找以下类型词汇
+  √ 直接推广类（赞助、促销、限时优惠）
+  √ 联系信息类（官网、二维码、400电话）
+  √ 品牌标识类（"点击下方链接"、"关注公众号"）
+* 结构特征分析：
+  √ 固定开头/结尾模板（如"本节目由...赞助"）
+  √ 重复出现的品牌名称（≥3次非常规提及）
 
-                                                    2. **上下文关联分析**
+2. **上下文关联分析**
 
-                                                    * 判断内容与前后文的相关性
-                                                    * 检测突兀的产品功能介绍（如突然插入设备参数说明）
-                                                    * 注意软性植入（主持人非自然口播提及产品）
+* 判断内容与前后文的相关性
+* 检测突兀的产品功能介绍（如突然插入设备参数说明）
+* 注意软性植入（主持人非自然口播提及产品）
 
-                                                    3. **时空特征识别**
+3. **时空特征识别**
 
-                                                    * 高频广告位置标记（片头15秒/片中转场处）
-                                                    * 异常时长段落（超过常规字幕时长的独立内容块）
+* 高频广告位置标记（片头15秒/片中转场处）
+* 异常时长段落（超过常规字幕时长的独立内容块）
 
 
-                                                    **附加要求：**
+**附加要求：**
 
-                                                    * 区分赞助声明与实质广告内容
-                                                    * 生成品牌提及频率统计表
-                                                    * 非中文内容需要先翻译为中文再识别
-                                                    * 返回的产品名称和广告内容不能太长
-                                                    * 正确识别时间轴与字幕内容的顺序，时间轴在字幕内容上方，示例：397.17 --> 399.24\n这就要打开美团外卖app了
-                                                    * 如果多段广告的开始与结束时间范围重叠了就合并为一条
-                                                    * 如果广告时间从单段字幕中间部分开始，以单段时长/文字占比作为开始时间，例如："447.34 --> 458.29\n只能说呢啊美国人眼里也是有活的啊，顺带一说呢，更有活的是火凤燎原第二季，每周四哔哩哔哩独家热播，感兴趣的同学们可以追番观看啊。", 字幕内容长度为 63，广告开始为第 17 个字符，公式为 (17/63)*(458.29-447.23)+447.23=450.214，开始时间为450.214
-                                                    * 如果广告片段少于 15 秒，忽略该段广告
+* 区分赞助声明与实质广告内容
+* 生成品牌提及频率统计表
+* 非中文内容需要先翻译为中文再识别
+* 返回的产品名称和广告内容不能太长
+* 正确识别时间轴与字幕内容的顺序，时间轴在字幕内容上方，示例：397.17 --> 399.24\n这就要打开美团外卖app了
+* 如果多段广告的开始与结束时间范围重叠了就合并为一条
+* 如果广告时间从单段字幕中间部分开始，以单段时长/文字占比作为开始时间，例如："447.34 --> 458.29\n只能说呢啊美国人眼里也是有活的啊，顺带一说呢，更有活的是火凤燎原第二季，每周四哔哩哔哩独家热播，感兴趣的同学们可以追番观看啊。", 字幕内容长度为 63，广告开始为第 17 个字符，公式为 (17/63)*(458.29-447.23)+447.23=450.214，开始时间为450.214
+* 如果广告片段少于 15 秒，忽略该段广告
 
-                                                    请把产品名称与广告内容精简后严格以这样的json的格式返回：
-                                                        {"ads": [{"start_time": "335.88","end_time": "425.34","product_name": "产品名称","ad_content": "广告内容。"},"msg": "是否识别到广告"]}`},
+请把产品名称与广告内容精简后严格以这样的json的格式返回：
+        {"ads": [{"start_time": "335.88","end_time": "425.34","product_name": "产品名称","ad_content": "广告内容"},"msg": "识别到广告"]}`},
                         {role: "user", content: subtitle}]};
 
-        const response = await fetch(settings.apiURL, {
-            method: "POST",
-            headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
-            body: JSON.stringify(requestData)
-        });
+        let response;
+        for (var i = 0; i < 3;) {
+            try {
+                response = await fetch(settings.apiURL, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
+                    body: JSON.stringify(requestData)
+                });
+                i = 3;
+            } catch (error) {
+                i++;
+            }
+        }
 
         const data = await response.json();
-
         if (data.error?.message) {
             showPopup("API error: " + data.error.message);
             console.log("API error:", data.error.message);
@@ -451,7 +468,6 @@ async function adRecognition(bvid,pvid) {
             showPopup("未收到有效响应.");
             return "";
         }
-
         return data;
     }
 }

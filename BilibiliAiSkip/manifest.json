@@ -9,9 +9,7 @@
     "*://api.bilibili.com/*"
   ],
   "permissions": [
-    "activeTab",
-    "storage",
-    "tabs"
+    "storage"
   ],
   "content_scripts": [
     {

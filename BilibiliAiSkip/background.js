@@ -31,14 +31,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function initConfig() {
-  let url = `https://dns.google/resolve?name=${encodeURIComponent('bilijump-config.oooo.uno')}&type=TXT`;
+  await chrome.storage.sync.set({ config: await getDnsConfig('bilijump-config.oooo.uno') });
+  await chrome.storage.sync.set({ banModels: await getDnsConfig('bilijump-ai-ban-model.oooo.uno') });
+}
+
+async function getDnsConfig(dns) {
+  let url = `https://dns.google/resolve?name=${encodeURIComponent(dns)}&type=TXT`;
   let configresp = await fetch(url);
   while(!configresp.ok) {
     configresp = await fetch(url);
   }
   let config = await configresp.json();
   let settings = JSON.parse(config?.Answer?.[0]?.data || {});
-  await chrome.storage.sync.set({ config: settings });
+  return settings;
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
