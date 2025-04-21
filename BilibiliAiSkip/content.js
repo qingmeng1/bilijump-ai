@@ -68,9 +68,14 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     console.log(adsData);
 
                     new Promise(async resolve => {
-                        document.querySelectorAll('.bpx-player-progress-schedule-current').forEach(element => {
-                            element.style.backgroundColor = '#13c58ae6';
-                        });
+                        let curr_progress = document.querySelectorAll('.bpx-player-progress-schedule-current');
+                        while(!curr_progress || curr_progress?.length == 0) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            curr_progress = document.querySelectorAll('.bpx-player-progress-schedule-current');
+                        }
+                        for (var p = 0; p < curr_progress.length; p++) {
+                            curr_progress[p].style.backgroundColor = '#13c58ae6';
+                        }
                     });
 
                     if(adsData && adsData.ads.length > 0) {
@@ -250,7 +255,7 @@ async function adRecognition(bvid,pvid) {
                 url: settings.cfApiURL,
                 method: "POST",
                 cfApiKey: settings.cfApiKey,
-                body: {sql: "SELECT data FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
+                body: {sql: "SELECT data,model FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
             }, response => {
                 if (response.success) {
                     resolve(response?.data?.result?.[0]?.results?.[0]);
@@ -262,7 +267,7 @@ async function adRecognition(bvid,pvid) {
         });
 
         if(dbResults) {
-            showPopup("使用云端数据.");
+            showPopup(`使用云端数据, 模型: ${dbResults?.model}.`);
             return JSON.parse(dbResults?.data);
         }
 
