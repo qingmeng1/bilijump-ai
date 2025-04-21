@@ -225,6 +225,21 @@
             background: #e9ecef;
         }
 
+        .apiURLDropdown {
+            display: none; 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: #ffffff; 
+            border: 1px solid rgba(89,184,93,0.5); 
+            border-radius: 6px; 
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); 
+            z-index: 10; 
+            max-height: 150px; 
+            overflow-y: auto;
+        }
+
         a {
             color: #3498db;
             text-decoration: none;
@@ -262,7 +277,7 @@
         <label for="apiURL">API URL</label>
         <div style="position: relative;">
             <input type="text" id="apiURL" placeholder="Enter API URL or click for options">
-            <div id="apiURLDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid rgba(89,184,93,0.5); border-radius: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); z-index: 10; max-height: 150px; overflow-y: auto;">
+            <div id="apiURLDropdown" class="apiURLDropdown">
                 <div class="dropdown-option" style="color: #4fcf54;">free, only gpt-4o-mini</div>
                 <div class="dropdown-option" data-value="https://api.x.ai/v1/chat/completions">grok <a href="https://console.x.ai" target="_blank">register</a></div>
                 <div class="dropdown-option" data-value="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions">gemini <a href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">register</a></div>
