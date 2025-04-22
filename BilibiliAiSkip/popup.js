@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let aiconfig = await response.json();
     
     const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
+    document.getElementById('free').textContent = 'free, only ' + defaultSettings?.apiModel;
 
     chrome.storage.sync.get(keys, result => {
         const apply = defaults => keys.forEach(k => {
@@ -63,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiURLInput.value = selectedValue;
             apiURLDropdown.style.display = 'none';
 
-            if (option.textContent.trim() === 'free, only gpt-4o-mini') {
+            if (option.id.trim() === 'free') {
                 document.getElementById('apiKey').value = defaultSettings?.apiKey;
                 document.getElementById('apiURL').value = defaultSettings?.apiURL;
                 document.getElementById('apiModel').value = defaultSettings?.apiModel;
