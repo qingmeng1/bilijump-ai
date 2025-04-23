@@ -305,15 +305,17 @@ async function adRecognition(bvid,pvid) {
                 return {ads:[], msg:"Please set aliApiKey"};
             }
             type = '音频';
-            showPopup("01:00 后解锁音频分析.");
-            while(document.querySelector('video').currentTime < 60) {
-                if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
-                    return {ads:[], msg:"上下文已切换."};
+
+            if (settings.autoAudio)  {
+                showPopup("01:00 后解锁音频分析.");
+                while(document.querySelector('video').currentTime < 60) {
+                    if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
+                        return {ads:[], msg:"上下文已切换."};
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
-            if (!settings.autoAudio && ! await checkPopup()) {
+                //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
+            } else if(!await checkPopup()) {
                 return {ads:[], msg:"用户拒绝音频分析, 识别结束."};
             }
 
