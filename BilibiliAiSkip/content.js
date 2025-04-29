@@ -34,7 +34,9 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
         //showPopup(`自动跳过：${settings.autoJump}`);
         //showPopup(`音频分析：${settings.audioEnabled}`);
         setInterval(async function(){
-            const bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');;
+            let bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
+            if(bvid == 'watchlater') bvid = new URLSearchParams(window.location.search).get('bvid');
+
             if(bid !== bvid || pid !== pvid){
                 bid = bvid, pid = pvid;
 
