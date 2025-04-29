@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bilibili AI Skip",
-  "version": "2.3.6",
+  "version": "2.3.8",
   "description": "一个使用 AI 自动跳过 Bilibili 视频广告的 Chrome 扩展程序。",
   "host_permissions": [
     "*://dashscope.aliyuncs.com/*",

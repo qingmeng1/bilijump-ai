@@ -53,19 +53,18 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                 }
                 showPopup(`视频长度：${Math.ceil(video.duration)}s`);
                 if((video?.duration || 0) < 120) {
-                    console.log(video.duration);
+                    styleLog(video.duration);
                     showPopup('短视频，无需分析广告');
                     return;
                 }
                 try {
                     let adsData = await adRecognition(bvid,pvid);
                     for(let i = 1; i < 3 && adsData == null; i++) {
-                        console.log(adsData);
+                        styleLog(adsData);
                         showPopup('Re-fetch AD data.');
                         adsData = await adRecognition(bvid,pvid);
                     }
-                    console.log(`Skip data`);
-                    console.log(adsData);
+                    styleLog(`广告数据: ` + JSON.stringify(adsData));
 
                     new Promise(async resolve => {
                         let curr_progress = document.querySelectorAll('.bpx-player-progress-schedule-current');
@@ -246,7 +245,7 @@ async function adRecognition(bvid,pvid) {
 
         //showPopup(`视频ID: ${bvid}`);
         //showPopup(`CID: ${cid}`);
-        console.log(`PID: ${pvid}`);
+        styleLog(`PID: ${pvid}`);
 
         //todo 获取云端数据
         let dbResults = await new Promise((resolve, reject) => {
@@ -260,7 +259,7 @@ async function adRecognition(bvid,pvid) {
                 if (response.success) {
                     resolve(response?.data?.result?.[0]?.results?.[0]);
                 } else {
-                    console.log("Background fetch error:", response.error);
+                    styleLog("Background fetch error:", response.error);
                     reject(new Error(response.error));
                 }
             });
@@ -329,9 +328,9 @@ async function adRecognition(bvid,pvid) {
                 return {ads:[], msg:"获取不到音频文件."};
             }
             showPopup("提交音频文件.");
-            console.log("audioUrl: " + audioUrl);
+            styleLog("audioUrl: " + audioUrl);
             const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
-            console.log("Task submitted successfully, Task ID:", taskId);
+            styleLog("Task submitted successfully, Task ID:", taskId);
 
             showPopup("等待音频分析结果.");
             const results = await waitForTaskCompletion(taskId);
@@ -340,9 +339,9 @@ async function adRecognition(bvid,pvid) {
                 if (result.subtask_status === "SUCCEEDED") {
                     const transcription = await fetchTranscription(result.transcription_url);
                     subtitle = generateSubtitle(transcription);
-                    //console.log("Subtitle content:\n", subtitle);
+                    //styleLog("Subtitle content:\n", subtitle);
                 } else {
-                    console.log(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
+                    styleLog(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
                     if(result.code === "SUCCESS_WITH_NO_VALID_FRAGMENT") {
                         return {ads:[], msg:"音频无有效片段."};
                     } else {
@@ -389,7 +388,7 @@ async function adRecognition(bvid,pvid) {
                 return {ads:[], msg:"AI 分析结果获取失败. " + error};
             }
         }
-        console.log(`CID: ${cid}, ad data: ${JSON.stringify(resultAD)}`);
+        styleLog(`CID: ${cid}, ad data: ${JSON.stringify(resultAD)}`);
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
@@ -399,8 +398,7 @@ async function adRecognition(bvid,pvid) {
         });
         return resultAD;
     } catch (error) {
-        showPopup("Error: " + error);
-        console.log("Error:", error);
+        showPopup("Error: " + JSON.stringify(error));
         if(popups.audioCheck) closePopup(popups.audioCheck);
         if(popups.task) closePopup(popups.task);
         if(popups.ai) closePopup(popups.ai);
@@ -422,6 +420,7 @@ async function adRecognition(bvid,pvid) {
 * 结构特征分析：
   √ 固定开头/结尾模板（如"本节目由...赞助"）
   √ 重复出现的品牌名称（≥3次非常规提及）
+  √ 区分测评类视频，测评不识别为广告（≤1一个品牌或产品）
 
 2. **上下文关联分析**
 
@@ -467,7 +466,6 @@ async function adRecognition(bvid,pvid) {
         const data = await response.json();
         if (data.error?.message) {
             showPopup("API error: " + data.error.message);
-            console.log("API error:", data.error.message);
             return "";
         }
 
@@ -554,7 +552,7 @@ async function checkPopup() {
 }
 
 function showPopup(msg,persist) {
-    console.log(msg);
+    styleLog(msg);
     var popup = document.createElement('div');
     popup.innerText = msg;
     popup.style.position = 'absolute';
@@ -616,7 +614,7 @@ async function submitTranscriptionTask(audioURL) {
       if (response.success) {
         resolve(response.data.output.task_id);
       } else {
-        console.log("Background fetch error:", response.error);
+        styleLog("Background fetch error:", response.error);
         reject(new Error(response.error));
       }
     });
@@ -636,13 +634,13 @@ async function waitForTaskCompletion(taskId) {
           if (response.success) {
             resolve(response.data);
           } else {
-            console.log("Background fetch error:", response.error);
+            styleLog("Background fetch error:", response.error);
             reject(new Error(response.error));
           }
         });
       });
 
-      console.log("Task status:", response);
+      styleLog("Task status:", response);
 
       switch (response.output.task_status) {
         case "SUCCEEDED":
@@ -667,7 +665,7 @@ async function waitForTaskCompletion(taskId) {
             throw new Error(`Unknown task status: ${response.output.task_status}`);
       }
     } catch (error) {
-      console.log("Error checking task status:", error);
+      styleLog("Error checking task status:", error);
       throw error;
     }
   }
@@ -681,7 +679,7 @@ async function fetchTranscription(transcriptionURL) {
         }
         return await response.text();
     } catch (error) {
-        console.log("Error fetching transcription:", error);
+        styleLog("Error fetching transcription:", error);
         throw error;
     }
 }
@@ -707,4 +705,8 @@ function updateTimes(cid, skip_time) {
             params: [Math.ceil(skip_time), cid]
         }
     });
+}
+
+function styleLog(msg) {
+    console.info("%c Bilibili AI Skip %c " + msg + " ", "padding: 2px 6px; border-radius: 3px 0 0 3px; color: #fff; background: #a19cef; font-weight: bold;", "padding: 2px 6px; border-radius: 0 3px 3px 0; color: #fff; background: #FF6699; font-weight: bold;")
 }
