@@ -261,7 +261,7 @@ async function adRecognition(bvid,pvid) {
                 if (response.success) {
                     resolve(response?.data?.result?.[0]?.results?.[0]);
                 } else {
-                    styleLog("Background fetch error:", response.error);
+                    styleLog("Background fetch error: " + response.error);
                     reject(new Error(response.error));
                 }
             });
@@ -332,7 +332,7 @@ async function adRecognition(bvid,pvid) {
             showPopup("提交音频文件.");
             styleLog("audioUrl: " + audioUrl);
             const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
-            styleLog("Task submitted successfully, Task ID:", taskId);
+            styleLog("Task submitted successfully, Task ID: " + taskId);
 
             showPopup("等待音频分析结果.");
             const results = await waitForTaskCompletion(taskId);
@@ -390,7 +390,7 @@ async function adRecognition(bvid,pvid) {
                 return {ads:[], msg:"AI 分析结果获取失败. " + error};
             }
         }
-        styleLog(`CID: ${cid}, ad data: ${JSON.stringify(resultAD)}`);
+        styleLog(`CID: ${cid}, data: ${JSON.stringify(resultAD)}`);
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
@@ -616,7 +616,7 @@ async function submitTranscriptionTask(audioURL) {
       if (response.success) {
         resolve(response.data.output.task_id);
       } else {
-        styleLog("Background fetch error:", response.error);
+        styleLog("Background fetch error: " + JSON.stringify(response.error));
         reject(new Error(response.error));
       }
     });
@@ -636,13 +636,13 @@ async function waitForTaskCompletion(taskId) {
           if (response.success) {
             resolve(response.data);
           } else {
-            styleLog("Background fetch error:", response.error);
+            styleLog("Background fetch error: " + JSON.stringify(response.error));
             reject(new Error(response.error));
           }
         });
       });
 
-      styleLog("Task status:", response);
+      styleLog("Task status: " + response?.output?.task_status);
 
       switch (response.output.task_status) {
         case "SUCCEEDED":
@@ -667,7 +667,7 @@ async function waitForTaskCompletion(taskId) {
             throw new Error(`Unknown task status: ${response.output.task_status}`);
       }
     } catch (error) {
-      styleLog("Error checking task status:", error);
+      styleLog("Error checking task status: " + JSON.stringify(error));
       throw error;
     }
   }
@@ -681,7 +681,7 @@ async function fetchTranscription(transcriptionURL) {
         }
         return await response.text();
     } catch (error) {
-        styleLog("Error fetching transcription:", error);
+        styleLog("Error fetching transcription: " + JSON.stringify(error));
         throw error;
     }
 }
