@@ -587,13 +587,12 @@ function showPopup(msg,persist) {
     }
     return popup;
 }
-
 function showCorrectionPopup(cid, currentAdsData) {
     const popup = document.createElement('div');
     popup.innerHTML = `
         <div style="display: flex; flex-direction: column; height: 100%;">
             <div style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">人工纠错</div>
-            <div id="ad-segments" style="min-height: 200px; max-height: 350px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div id="ad-segments" style="min-height: 100px; max-height: 350px; overflow-y: auto; margin-bottom: 15px;"></div>
             <div style="display: flex; gap: 10px; justify-content: space-between;">
                 <button id="add-segment" style="flex: 1; padding: 8px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">增加片段</button>
                 <button id="submit-button" style="flex: 1; padding: 8px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">提交</button>
@@ -657,6 +656,33 @@ function showCorrectionPopup(cid, currentAdsData) {
             return parts[0] * 60 + parts[1];
         }
         return null;
+    }
+
+    // Create confirmation dialog
+    function createConfirmationDialog() {
+        const confirmPopup = document.createElement('div');
+        confirmPopup.innerHTML = `
+            <div style="display: flex; flex-direction: column; padding: 20px;">
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 15px;">确认提交</div>
+                <div style="margin-bottom: 15px; font-size: 14px;">是否确认提交广告纠错数据？</div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="confirm-submit" style="padding: 8px 16px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">确认</button>
+                    <button id="confirm-cancel" style="padding: 8px 16px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">取消</button>
+                </div>
+            </div>
+        `;
+        confirmPopup.style.position = 'absolute';
+        confirmPopup.style.top = '50%';
+        confirmPopup.style.left = '50%';
+        confirmPopup.style.transform = 'translate(-50%, -50%)';
+        confirmPopup.style.width = '300px';
+        confirmPopup.style.background = 'rgba(50, 50, 50, 0.6)';
+        confirmPopup.style.color = '#fff';
+        confirmPopup.style.borderRadius = '12px';
+        confirmPopup.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.4)';
+        confirmPopup.style.zIndex = '1001';
+        confirmPopup.style.backdropFilter = 'blur(5px)';
+        return confirmPopup;
     }
 
     function addAdSegment(ad = { start_time: '', end_time: '', product_name: '', ad_content: '' }) {
@@ -729,101 +755,109 @@ function showCorrectionPopup(cid, currentAdsData) {
     console.log('Populating ad segments with data:', currentAdsData.ads);
     (currentAdsData.ads || []).forEach(ad => addAdSegment(ad));
 
-    if (!currentAdsData.ads || currentAdsData.ads.length === 0) {
-        console.log('No existing ad segments, adding empty segment');
-        addAdSegment();
-    }
-
     popup.querySelector('#add-segment').addEventListener('click', () => {
         console.log('Add segment button clicked');
         addAdSegment();
     });
 
-    popup.querySelector('#submit-button').addEventListener('click', async () => {
+    popup.querySelector('#submit-button').addEventListener('click', () => {
         console.log('Submit button clicked');
-        const segments = adSegmentsContainer.querySelectorAll('.ad-segment');
-        const ads = [];
+        const confirmPopup = createConfirmationDialog();
+        playerContainer.appendChild(confirmPopup);
 
-        for (const segment of segments) {
-            const startTimeInput = segment.querySelector('.start-time').value;
-            const endTimeInput = segment.querySelector('.end-time').value;
-            const productName = segment.querySelector('.product-name').value;
-            const adContent = segment.querySelector('.ad-content-textarea').value;
+        confirmPopup.querySelector('#confirm-cancel').addEventListener('click', () => {
+            console.log('Confirmation cancelled');
+            confirmPopup.remove();
+        });
 
-            const startTime = timeToSeconds(startTimeInput);
-            const endTime = timeToSeconds(endTimeInput);
+        confirmPopup.querySelector('#confirm-submit').addEventListener('click', async () => {
+            console.log('Confirmation confirmed');
+            confirmPopup.remove();
 
-            console.log('Processing segment:', { startTimeInput, endTimeInput, startTime, endTime, productName, adContent });
+            const segments = adSegmentsContainer.querySelectorAll('.ad-segment');
+            const ads = [];
 
-            if (startTime === null || endTime === null || !productName || !adContent) {
-                showPopup('请填写所有广告段的字段，并确保时间格式为 hh:mm:ss 或 mm:ss');
-                console.error('Validation failed: Invalid or missing fields');
-                return;
-            }
+            for (const segment of segments) {
+                const startTimeInput = segment.querySelector('.start-time').value;
+                const endTimeInput = segment.querySelector('.end-time').value;
+                const productName = segment.querySelector('.product-name').value;
+                const adContent = segment.querySelector('.ad-content-textarea').value;
 
-            ads.push({
-                start_time: startTime.toFixed(2),
-                end_time: endTime.toFixed(2),
-                product_name: productName,
-                ad_content: adContent
-            });
-        }
+                const startTime = timeToSeconds(startTimeInput);
+                const endTime = timeToSeconds(endTimeInput);
 
-        ads.sort((a, b) => parseFloat(a.start_time) - parseFloat(b.start_time));
-        const mergedAds = [];
-        let currentAd = null;
+                console.log('Processing segment:', { startTimeInput, endTimeInput, startTime, endTime, productName, adContent });
 
-        for (const ad of ads) {
-            if (!currentAd) {
-                currentAd = { ...ad };
-            } else if (parseFloat(ad.start_time) <= parseFloat(currentAd.end_time)) {
-                currentAd.end_time = Math.max(parseFloat(currentAd.end_time), parseFloat(ad.end_time)).toFixed(2);
-                currentAd.product_name = `${currentAd.product_name}, ${ad.product_name}`;
-                currentAd.ad_content = `${currentAd.ad_content}; ${ad.ad_content}`;
-            } else {
-                mergedAds.push(currentAd);
-                currentAd = { ...ad };
-            }
-        }
-        if (currentAd) {
-            mergedAds.push(currentAd);
-        }
+                if (startTime === null || endTime === null || !productName || !adContent) {
+                    showPopup('请填写所有广告段的字段，并确保时间格式为 hh:mm:ss 或 mm:ss');
+                    console.error('Validation failed: Invalid or missing fields');
+                    return;
+                }
 
-        const correctedAdsData = {
-            ads: mergedAds,
-            msg: mergedAds.length > 0 ? "识别到广告" : "未识别到广告"
-        };
-
-        try {
-            await new Promise((resolve, reject) => {
-                console.log('Sending dbQuery to update bilijump:', correctedAdsData);
-                chrome.runtime.sendMessage({
-                    action: "dbQuery",
-                    url: settings.cfApiURL,
-                    method: "POST",
-                    cfApiKey: settings.cfApiKey,
-                    body: {
-                        sql: `UPDATE bilijump SET data = ?, model = ? WHERE cid = ?;`,
-                        params: [JSON.stringify(correctedAdsData), 'artificial', cid]
-                    }
-                }, response => {
-                    if (response.success) {
-                        console.log('Database update successful');
-                        resolve();
-                    } else {
-                        console.error("Correction submission error: " + response.error);
-                        reject(new Error(response.error));
-                    }
+                ads.push({
+                    start_time: startTime.toFixed(2),
+                    end_time: endTime.toFixed(2),
+                    product_name: productName,
+                    ad_content: adContent
                 });
-            });
+            }
 
-            showPopup('提交成功，数据已更新！');
-            console.log('Correction submitted successfully');
-            closePopup(popup);
-        } catch (error) {
-            showPopup('提交失败：' + error.message);
-            console.error('Submission failed:', error);
-        }
+            ads.sort((a, b) => parseFloat(a.start_time) - parseFloat(b.start_time));
+            const mergedAds = [];
+            let currentAd = null;
+
+            for (const ad of ads) {
+                if (!currentAd) {
+                    currentAd = { ...ad };
+                } else if (parseFloat(ad.start_time) <= parseFloat(currentAd.end_time)) {
+                    currentAd.end_time = Math.max(parseFloat(currentAd.end_time), parseFloat(ad.end_time)).toFixed(2);
+                    currentAd.product_name = `${currentAd.product_name}, ${ad.product_name}`;
+                    currentAd.ad_content = `${currentAd.ad_content}; ${ad.ad_content}`;
+                } else {
+                    mergedAds.push(currentAd);
+                    currentAd = { ...ad };
+                }
+            }
+            if (currentAd) {
+                mergedAds.push(currentAd);
+            }
+
+            const correctedAdsData = {
+                ads: mergedAds,
+                msg: mergedAds.length > 0 ? "识别到广告" : "未识别到广告"
+            };
+
+            try {
+                await new Promise((resolve, reject) => {
+                    console.log('Sending dbQuery to update bilijump:', correctedAdsData);
+                    chrome.runtime.sendMessage({
+                        action: "dbQuery",
+                        url: settings.cfApiURL,
+                        method: "POST",
+                        cfApiKey: settings.cfApiKey,
+                        body: {
+                            sql: `UPDATE bilijump SET data = ?, model = ? WHERE cid = ?;`,
+                            params: [JSON.stringify(correctedAdsData), 'artificial', cid]
+                        }
+                    }, response => {
+                        if (response.success) {
+                            console.log('Database update successful');
+                            resolve();
+                        } else {
+                            console.error("Correction submission error: " + response.error);
+                            reject(new Error(response.error));
+                        }
+                    });
+                });
+
+                showPopup('提交成功，数据已更新！');
+                console.log('Correction submitted successfully');
+                closePopup(popup);
+            } catch (error) {
+                showPopup('提交失败：' + error.message);
+                console.error('Submission failed:', error);
+            }
+        });
     });
 
     popup.querySelector('#cancel-button').addEventListener('click', () => {
