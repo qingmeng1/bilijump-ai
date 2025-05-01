@@ -47,6 +47,10 @@ async function getDnsConfig(dns) {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
+  let uid = await chrome.storage.sync.get('uid');
+  if(!uid?.uid) {
+    chrome.storage.sync.set({uid: crypto.randomUUID()});
+  }
   await initConfig();
 });
 
