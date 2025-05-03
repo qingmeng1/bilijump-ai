@@ -1,3 +1,7 @@
+<div align="center">
+ <img width="560" src="img.png" alt="logo">
+</div>
+
 # Bilibili AI Skip
 
 一个使用 AI 自动跳过 Bilibili 视频广告的 Chrome 扩展程序。
