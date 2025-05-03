@@ -137,7 +137,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                         }
                                         const playerContainer = document.querySelector('.bpx-player-container');
                                         if (!playerContainer) {
-                                            console.error('Player container not found.');
+                                            console.info('Player container not found.');
                                             return;
                                         }
 
@@ -223,7 +223,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                         }
                     } else showPopup(adsData?.msg || "无有效数据");
                 } catch (error) {
-                    console.error('Failed to fetch ad time:', error);
+                    console.info('Failed to fetch ad time:', error);
                 }
             }
         }, 1000);
@@ -538,7 +538,7 @@ async function checkPopup() {
         if (playerContainer) {
             playerContainer.appendChild(popup);
         } else {
-            console.error('Player container not found.');
+            console.info('Player container not found.');
             resolve(false);
             return;
         }
@@ -583,286 +583,530 @@ function showPopup(msg,persist) {
             }, 7000);
         }
     } else {
-        console.error('Player container not found.');
+        console.info('Player container not found.');
     }
     return popup;
 }
+
+function getVideoElement() {
+    return document.querySelector('video');
+}
+
+function secondsToTime(seconds, forceHours = false) {
+    if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';
+    seconds = Math.floor(seconds);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0 || forceHours) {
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+let isSettingTime = false;
+let targetSegmentElement = null;
+let targetTimeType = null;
+let progressClickListener = null;
+let activeTimeSettingButton = null; 
+
 function showCorrectionPopup(cid, currentAdsData) {
+    const existingPopup = document.getElementById('bilibili-ai-skip-correction-popup');
+    if (existingPopup) {
+        closePopup(existingPopup);
+    }
+
+    const cancelTimeSelectionMode = () => {
+        if (!isSettingTime) return;
+
+        const progressBar = document.querySelector('.bpx-player-progress-wrap');
+        const timeSelectionStatus = document.getElementById('time-selection-status');
+
+        if (progressBar && progressClickListener) {
+            progressBar.removeEventListener('click', progressClickListener);
+            progressBar.style.cursor = '';
+            styleLog("Bilibili AI Skip: Removed progress bar click listener.");
+        }
+
+        if (activeTimeSettingButton) {
+            const isStartButton = activeTimeSettingButton.classList.contains('set-start-time');
+            activeTimeSettingButton.textContent = isStartButton ? 'Set Start' : 'Set End';
+            styleLog(`Bilibili AI Skip: Reset button text for ${isStartButton ? 'start' : 'end'} time.`);
+        }
+
+        if (timeSelectionStatus) {
+             timeSelectionStatus.textContent = '';
+             timeSelectionStatus.style.display = 'none';
+             styleLog("Bilibili AI Skip: Cleared and hid time selection status.");
+        }
+
+        isSettingTime = false;
+        targetSegmentElement = null;
+        targetTimeType = null;
+        progressClickListener = null;
+        activeTimeSettingButton = null;
+        styleLog("Bilibili AI Skip: Time selection mode cancelled.");
+    };
+
     const popup = document.createElement('div');
+    popup.id = 'bilibili-ai-skip-correction-popup';
     popup.innerHTML = `
         <div style="display: flex; flex-direction: column; height: 100%;">
-            <div style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">人工纠错</div>
-            <div id="ad-segments" style="min-height: 100px; max-height: 350px; overflow-y: auto; margin-bottom: 15px;"></div>
-            <div style="display: flex; gap: 10px; justify-content: space-between;">
-                <button id="add-segment" style="flex: 1; padding: 8px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">增加片段</button>
-                <button id="submit-button" style="flex: 1; padding: 8px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">提交</button>
-                <button id="cancel-button" style="flex: 1; padding: 8px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">取消</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-weight: bold; font-size: 18px;">人工纠错</span>
+                <button id="close-correction-popup" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; line-height: 1;">×</button>
+            </div>
+            <div id="time-selection-status" style="min-height: 20px; text-align: center; color: #ffeb3b; margin-bottom: 10px; font-size: 13px; display: none;"></div>
+            <div id="ad-segments-container" style="min-height: 100px; max-height: 350px; overflow-y: auto; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 10px;">
+                <div id="ad-segments"></div>
+                <div id="empty-state" style="text-align: center; color: #ccc; padding: 20px; display: none;">当前未识别到广告片段。<br>您可以手动添加。</div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 5px;">
+                <button id="add-segment" style="flex-basis: 30%; padding: 8px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">增加片段</button>
+                <button id="confirm-no-ads" style="flex-basis: 30%; padding: 8px; background: #ff9800; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">无广告</button>
+                <button id="submit-button" style="flex-basis: 30%; padding: 8px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">提交</button>
             </div>
         </div>
     `;
     popup.style.position = 'absolute';
-    popup.style.bottom = '90px';
+    popup.style.bottom = '120px';
     popup.style.right = '30px';
-    popup.style.width = '380px';
+    popup.style.width = '420px';
     popup.style.padding = '20px';
-    popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(50, 50, 50, 0.6))';
+    popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(50, 50, 50, 0.8))';
     popup.style.color = '#fff';
     popup.style.borderRadius = '12px';
     popup.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.4)';
-    popup.style.zIndex = '1000';
+    popup.style.zIndex = '50';
     popup.style.fontFamily = '"Arial", sans-serif';
     popup.style.lineHeight = '1.6';
-    popup.style.backdropFilter = 'blur(5px)';
+    popup.style.backdropFilter = 'blur(8px)';
 
-    popup.addEventListener('mouseenter', function() {
-        popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(50, 50, 50, 0.8))';
-    });
-    popup.addEventListener('mouseleave', function() {
-        popup.style.background = 'linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(50, 50, 50, 0.6))';
-    });
 
     const playerContainer = document.querySelector('.bpx-player-container');
     if (!playerContainer) {
-        console.error('Player container not found.');
+        showPopup('错误：无法找到播放器容器');
         return;
     }
-
     playerContainer.appendChild(popup);
-    popups.others.push(popup);
+    if (popups?.others) {
+         popups.others.push(popup);
+    } else {
+         console.warn("Bilibili AI Skip: popups.others array not found. Popup management might be affected.");
+    }
 
     const adSegmentsContainer = popup.querySelector('#ad-segments');
+    const emptyStateDiv = popup.querySelector('#empty-state');
+    const timeSelectionStatus = popup.querySelector('#time-selection-status');
 
-    // Utility function to convert seconds to hh:mm:ss or mm:ss
-    function secondsToTime(seconds) {
-        if (!seconds && seconds !== 0) return '';
-        const hrs = Math.floor(seconds / 3600);
-        const mins = Math.floor((seconds % 3600) / 60);
-        const secs = Math.floor(seconds % 60);
-        if (hrs > 0) {
-            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+     const enterTimeSelectionMode = (segmentElement, timeType, buttonElement) => {
+        if (isSettingTime && activeTimeSettingButton === buttonElement) {
+            styleLog(`Bilibili AI Skip: Re-clicked the active setting button. Cancelling selection.`);
+            cancelTimeSelectionMode();
+            return;
         }
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
 
-    // Utility function to parse hh:mm:ss or mm:ss to seconds
-    function timeToSeconds(time) {
-        if (!time) return null;
-        const parts = time.split(':').map(Number);
-        if (parts.length === 3) {
-            // hh:mm:ss
-            return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        } else if (parts.length === 2) {
-            // mm:ss
-            return parts[0] * 60 + parts[1];
+        if (isSettingTime) {
+            styleLog("Bilibili AI Skip: Switching time selection target. Cancelling previous mode.");
+            cancelTimeSelectionMode();
         }
-        return null;
-    }
 
-    // Create confirmation dialog
-    function createConfirmationDialog() {
-        const confirmPopup = document.createElement('div');
-        confirmPopup.innerHTML = `
-            <div style="display: flex; flex-direction: column; padding: 20px;">
-                <div style="font-weight: bold; font-size: 16px; margin-bottom: 15px;">确认提交</div>
-                <div style="margin-bottom: 15px; font-size: 14px;">是否确认提交广告纠错数据？</div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button id="confirm-submit" style="padding: 8px 16px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">确认</button>
-                    <button id="confirm-cancel" style="padding: 8px 16px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">取消</button>
-                </div>
-            </div>
-        `;
-        confirmPopup.style.position = 'absolute';
-        confirmPopup.style.top = '50%';
-        confirmPopup.style.left = '50%';
-        confirmPopup.style.transform = 'translate(-50%, -50%)';
-        confirmPopup.style.width = '300px';
-        confirmPopup.style.background = 'rgba(50, 50, 50, 0.6)';
-        confirmPopup.style.color = '#fff';
-        confirmPopup.style.borderRadius = '12px';
-        confirmPopup.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.4)';
-        confirmPopup.style.zIndex = '1001';
-        confirmPopup.style.backdropFilter = 'blur(5px)';
-        return confirmPopup;
-    }
+        const video = getVideoElement();
+        const progressBar = document.querySelector('.bpx-player-progress-wrap');
 
-    function addAdSegment(ad = { start_time: '', end_time: '', product_name: '', ad_content: '' }) {
-        console.log('Adding ad segment with data:', ad);
+        if (!video || !progressBar) {
+            showPopup('错误：无法找到视频或进度条');
+            styleLog("Bilibili AI Skip: Video or progress bar element not found for time setting.");
+            return;
+        }
+
+        isSettingTime = true;
+        targetSegmentElement = segmentElement;
+        targetTimeType = timeType;
+        activeTimeSettingButton = buttonElement;
+
+        buttonElement.textContent = 'Setting...';
+        timeSelectionStatus.textContent = `请点击播放器进度条以设置${timeType === 'start' ? '开始' : '结束'}时间`;
+        timeSelectionStatus.style.display = 'block';
+        progressBar.style.cursor = 'crosshair';
+        progressClickListener = (event) => {
+            const rect = progressBar.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const barWidth = progressBar.offsetWidth;
+            const duration = video.duration;
+
+            if (!isNaN(duration) && duration > 0 && barWidth > 0) {
+                const clickedTime = Math.max(0, Math.min(duration, (offsetX / barWidth) * duration));
+                const timeDisplaySpan = segmentElement.querySelector(timeType === 'start' ? '.start-time-display' : '.end-time-display');
+                if (timeDisplaySpan) {
+                     timeDisplaySpan.textContent = secondsToTime(clickedTime);
+                     segmentElement.setAttribute(`data-${timeType}-seconds`, clickedTime.toFixed(3));
+                     console.log(`Bilibili AI Skip: Set ${timeType} time to ${clickedTime.toFixed(3)}s (${secondsToTime(clickedTime)})`);
+                     if(timeType === 'start') {
+                        segmentElement.dataset.sortTime = clickedTime.toFixed(3);
+                     }
+                } else {
+                     console.info("Bilibili AI Skip: Time display span not found for", timeType);
+                }
+                video.currentTime = clickedTime;
+                cancelTimeSelectionMode();
+
+            } else {
+                console.warn("Bilibili AI Skip: Could not calculate time. Duration or bar width invalid.", {duration, barWidth});
+                showPopup("无法获取时间，请确保视频已加载");
+            }
+        };
+
+        progressBar.addEventListener('click', progressClickListener);
+    };
+
+    function addAdSegment(ad = { start_time: null, end_time: null, product_name: '', ad_content: '' }) {
         const segment = document.createElement('div');
         segment.className = 'ad-segment';
         segment.style.marginBottom = '15px';
         segment.style.padding = '15px';
-        segment.style.background = 'rgba(255, 255, 255, 0.15)';
+        segment.style.background = 'rgba(255, 255, 255, 0.1)';
         segment.style.borderRadius = '8px';
         segment.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-        segment.style.minHeight = '250px';
-        segment.style.overflow = 'visible';
+        segment.style.position = 'relative';
+
+        const startTimeSeconds = (ad.start_time !== null && !isNaN(parseFloat(ad.start_time))) ? parseFloat(ad.start_time) : null;
+        const endTimeSeconds = (ad.end_time !== null && !isNaN(parseFloat(ad.end_time))) ? parseFloat(ad.end_time) : null;
+
+        segment.setAttribute('data-start-seconds', startTimeSeconds !== null ? startTimeSeconds.toFixed(3) : '');
+        segment.setAttribute('data-end-seconds', endTimeSeconds !== null ? endTimeSeconds.toFixed(3) : '');
+        segment.dataset.sortTime = startTimeSeconds !== null ? startTimeSeconds.toFixed(3) : Infinity;
+
         segment.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 14px; font-weight: bold;">广告片段</span>
-                <button class="remove-segment" style="padding: 4px 10px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">删除</button>
+            <button class="remove-segment" style="position: absolute; top: 8px; right: 8px; padding: 2px 6px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1;">删除</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <div style="flex: 1; text-align: center;">
+                    <label style="font-size: 13px; display: block; margin-bottom: 5px;">开始时间</label>
+                    <span class="start-time-display" style="font-size: 16px; font-weight: bold; color: #a0ffa0; display: block; margin-bottom: 5px; border: 2px solid transparent; padding: 2px 4px; border-radius: 3px;">${secondsToTime(startTimeSeconds)}</span>
+                    <button class="set-start-time" style="padding: 4px 8px; background: #03a9f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Set Start</button>
+                </div>
+                <div style="width: 20px; text-align: center; font-size: 16px;">→</div>
+                <div style="flex: 1; text-align: center;">
+                    <label style="font-size: 13px; display: block; margin-bottom: 5px;">结束时间</label>
+                    <span class="end-time-display" style="font-size: 16px; font-weight: bold; color: #ffa0a0; display: block; margin-bottom: 5px; border: 2px solid transparent; padding: 2px 4px; border-radius: 3px;">${secondsToTime(endTimeSeconds)}</span>
+                    <button class="set-end-time" style="padding: 4px 8px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Set End</button>
+                </div>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <div style="flex: 1;">
-                    <label style="margin-bottom: 5px; font-size: 13px; display: block;">开始时间:</label>
-                    <input type="text" class="start-time" style="width: 100%; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;" placeholder="00:00:00" value="${secondsToTime(ad.start_time)}">
-                </div>
-                <div style="flex: 1;">
-                    <label style="margin-bottom: 5px; font-size: 13px; display: block;">结束时间:</label>
-                    <input type="text" class="end-time" style="width: 100%; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;" placeholder="00:00:00" value="${secondsToTime(ad.end_time)}">
-                </div>
+            <div class="mini-progress" style="height: 6px; background: rgba(255,255,255,0.3); border-radius: 3px; margin-bottom: 10px; position: relative; overflow: hidden;">
+                <div class="mini-progress-indicator" style="position: absolute; height: 100%; background: #ffeb3b; left: 0%; width: 0%;"></div>
             </div>
             <label style="margin-bottom: 5px; font-size: 13px; display: block;">产品名称:</label>
-            <input type="text" class="product-name" style="width: 100%; margin-bottom: 10px; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;" value="${ad.product_name}">
+            <input type="text" class="product-name" style="width: 100%; margin-bottom: 10px; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;" value="${ad.product_name || ''}">
             <label style="margin-bottom: 5px; font-size: 13px; display: block;">广告内容:</label>
-            <textarea class="ad-content-textarea" style="width: 100%; height: 80px; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; display: block; visibility: visible;"></textarea>
+            <textarea class="ad-content-textarea" style="width: 100%; height: 60px; padding: 8px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; resize: vertical;">${ad.ad_content || ''}</textarea>
         `;
-        adSegmentsContainer.appendChild(segment);
 
-        const textarea = segment.querySelector('.ad-content-textarea');
-        textarea.value = ad.ad_content;
+        const updateMiniProgress = () => {
+             const video = getVideoElement();
+             if (!video || !video.duration || isNaN(video.duration) || video.duration <= 0) return;
+             const duration = video.duration;
+             const startAttr = segment.getAttribute('data-start-seconds');
+             const endAttr = segment.getAttribute('data-end-seconds');
+             const indicator = segment.querySelector('.mini-progress-indicator');
 
-        segment.offsetHeight;
+             if (!indicator) return;
 
-        const computedStyles = window.getComputedStyle(textarea);
-        console.log('Textarea computed styles:', {
-            display: computedStyles.display,
-            visibility: computedStyles.visibility,
-            height: computedStyles.height,
-            width: computedStyles.width,
-            position: computedStyles.position,
-            zIndex: computedStyles.zIndex
+             const start = (startAttr && !isNaN(parseFloat(startAttr))) ? parseFloat(startAttr) : null;
+             const end = (endAttr && !isNaN(parseFloat(endAttr))) ? parseFloat(endAttr) : null;
+
+             if (start !== null && end !== null && end > start) {
+                 const leftPercent = (start / duration) * 100;
+                 const widthPercent = ((end - start) / duration) * 100;
+                 indicator.style.left = `${Math.max(0, leftPercent)}%`;
+                 indicator.style.width = `${Math.min(100 - leftPercent, widthPercent)}%`;
+             } else {
+                 indicator.style.left = '0%';
+                 indicator.style.width = '0%';
+             }
+        };
+
+        updateMiniProgress();
+        const observer = new MutationObserver(mutations => {
+             if (mutations.some(m => m.attributeName === 'data-start-seconds' || m.attributeName === 'data-end-seconds')) {
+                  updateMiniProgress();
+             }
         });
-
-        const segmentStyles = window.getComputedStyle(segment);
-        console.log('Parent ad-segment computed styles:', {
-            overflow: segmentStyles.overflow,
-            height: segmentStyles.height,
-            minHeight: segmentStyles.minHeight
+        observer.observe(segment, {
+            attributes: true, attributeFilter: ['data-start-seconds', 'data-end-seconds']
         });
-
-        if (textarea) {
-            console.log('Textarea added successfully:', textarea);
-        } else {
-            console.error('Textarea not found in segment:', segment.innerHTML);
+        const videoElem = getVideoElement();
+        if (videoElem) {
+            if (videoElem.readyState >= 1) {
+                updateMiniProgress();
+            } else {
+                 videoElem.addEventListener('loadedmetadata', updateMiniProgress, {once: true});
+            }
         }
 
+        const sortSegmentsVisually = () => {
+            const segments = Array.from(adSegmentsContainer.children).filter(el => el.classList.contains('ad-segment'));
+            segments.sort((a, b) => {
+                const timeA = parseFloat(a.dataset.sortTime ?? Infinity);
+                const timeB = parseFloat(b.dataset.sortTime ?? Infinity);
+                return timeA - timeB;
+            });
+            segments.forEach(seg => adSegmentsContainer.appendChild(seg));
+        }
+
+        adSegmentsContainer.appendChild(segment);
+        sortSegmentsVisually();
+
         segment.querySelector('.remove-segment').addEventListener('click', () => {
-            console.log('Removing ad segment');
+            if(targetSegmentElement === segment) {
+                cancelTimeSelectionMode();
+            }
             segment.remove();
+            observer.disconnect();
+             const videoElem = getVideoElement();
+             if (videoElem) videoElem.removeEventListener('loadedmetadata', updateMiniProgress);
+            checkEmptyState();
         });
+
+        const setStartButton = segment.querySelector('.set-start-time');
+        setStartButton.addEventListener('click', () => {
+            enterTimeSelectionMode(segment, 'start', setStartButton);
+        });
+
+        const setEndButton = segment.querySelector('.set-end-time');
+        setEndButton.addEventListener('click', () => {
+            enterTimeSelectionMode(segment, 'end', setEndButton);
+        });
+
+        checkEmptyState();
     }
 
-    console.log('Populating ad segments with data:', currentAdsData.ads);
-    (currentAdsData.ads || []).forEach(ad => addAdSegment(ad));
+    function checkEmptyState() {
+        const segmentCount = adSegmentsContainer.children.length;
+        emptyStateDiv.style.display = segmentCount === 0 ? 'block' : 'none';
+    }
+
+    const initialAds = (currentAdsData && currentAdsData.ads ? currentAdsData.ads : [])
+        .map(ad => ({
+            start_time: !isNaN(parseFloat(ad.start_time)) ? parseFloat(ad.start_time) : null,
+            end_time: !isNaN(parseFloat(ad.end_time)) ? parseFloat(ad.end_time) : null,
+            product_name: ad.product_name,
+            ad_content: ad.ad_content
+        }));
+    initialAds.forEach(ad => addAdSegment(ad));
+    checkEmptyState();
 
     popup.querySelector('#add-segment').addEventListener('click', () => {
-        console.log('Add segment button clicked');
         addAdSegment();
     });
 
-    popup.querySelector('#submit-button').addEventListener('click', () => {
-        console.log('Submit button clicked');
-        const confirmPopup = createConfirmationDialog();
-        playerContainer.appendChild(confirmPopup);
-
-        confirmPopup.querySelector('#confirm-cancel').addEventListener('click', () => {
-            console.log('Confirmation cancelled');
-            confirmPopup.remove();
-        });
-
-        confirmPopup.querySelector('#confirm-submit').addEventListener('click', async () => {
-            console.log('Confirmation confirmed');
-            confirmPopup.remove();
-
-            const segments = adSegmentsContainer.querySelectorAll('.ad-segment');
-            const ads = [];
-
-            for (const segment of segments) {
-                const startTimeInput = segment.querySelector('.start-time').value;
-                const endTimeInput = segment.querySelector('.end-time').value;
-                const productName = segment.querySelector('.product-name').value;
-                const adContent = segment.querySelector('.ad-content-textarea').value;
-
-                const startTime = timeToSeconds(startTimeInput);
-                const endTime = timeToSeconds(endTimeInput);
-
-                console.log('Processing segment:', { startTimeInput, endTimeInput, startTime, endTime, productName, adContent });
-
-                if (startTime === null || endTime === null || !productName || !adContent) {
-                    showPopup('请填写所有广告段的字段，并确保时间格式为 hh:mm:ss 或 mm:ss');
-                    console.error('Validation failed: Invalid or missing fields');
-                    return;
-                }
-
-                ads.push({
-                    start_time: startTime.toFixed(2),
-                    end_time: endTime.toFixed(2),
-                    product_name: productName,
-                    ad_content: adContent
-                });
-            }
-
-            ads.sort((a, b) => parseFloat(a.start_time) - parseFloat(b.start_time));
-            const mergedAds = [];
-            let currentAd = null;
-
-            for (const ad of ads) {
-                if (!currentAd) {
-                    currentAd = { ...ad };
-                } else if (parseFloat(ad.start_time) <= parseFloat(currentAd.end_time)) {
-                    currentAd.end_time = Math.max(parseFloat(currentAd.end_time), parseFloat(ad.end_time)).toFixed(2);
-                    currentAd.product_name = `${currentAd.product_name}, ${ad.product_name}`;
-                    currentAd.ad_content = `${currentAd.ad_content}; ${ad.ad_content}`;
-                } else {
-                    mergedAds.push(currentAd);
-                    currentAd = { ...ad };
-                }
-            }
-            if (currentAd) {
-                mergedAds.push(currentAd);
-            }
-
-            const correctedAdsData = {
-                ads: mergedAds,
-                msg: mergedAds.length > 0 ? "识别到广告" : "未识别到广告"
-            };
-
-            try {
-                await new Promise((resolve, reject) => {
-                    console.log('Sending dbQuery to update bilijump:', correctedAdsData);
-                    chrome.runtime.sendMessage({
-                        action: "dbQuery",
-                        url: settings.cfApiURL,
-                        method: "POST",
-                        cfApiKey: settings.cfApiKey,
-                        body: {
-                            sql: `UPDATE bilijump SET data = ?, model = ? WHERE cid = ?;`,
-                            params: [JSON.stringify(correctedAdsData), 'artificial', cid]
-                        }
-                    }, response => {
-                        if (response.success) {
-                            console.log('Database update successful');
-                            resolve();
-                        } else {
-                            console.error("Correction submission error: " + response.error);
-                            reject(new Error(response.error));
-                        }
-                    });
-                });
-
-                showPopup('提交成功，数据已更新！');
-                console.log('Correction submitted successfully');
-                closePopup(popup);
-            } catch (error) {
-                showPopup('提交失败：' + error.message);
-                console.error('Submission failed:', error);
-            }
-        });
+    popup.querySelector('#close-correction-popup').addEventListener('click', () => {
+        cancelTimeSelectionMode();
+        closePopup(popup);
     });
 
-    popup.querySelector('#cancel-button').addEventListener('click', () => {
-        console.log('Cancel button clicked');
-        closePopup(popup);
+    async function submitCorrection(adsData, message) {
+        cancelTimeSelectionMode();
+        if (typeof settings === 'undefined' || !settings.cfApiURL || !settings.cfApiKey) {
+             showPopup("提交失败：无法访问配置");
+             return; 
+        }
+
+        try {
+            await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({
+                    action: "dbQuery",
+                    url: settings.cfApiURL,
+                    method: "POST",
+                    cfApiKey: settings.cfApiKey,
+                    body: {
+                        sql: `UPDATE bilijump SET data = ?, model = ? WHERE cid = ?;`,
+                        params: [JSON.stringify(adsData), 'artificial', cid]
+                    }
+                }, response => {
+                    if (chrome.runtime.lastError) {
+                         console.info("Bilibili AI Skip: chrome.runtime.lastError:", chrome.runtime.lastError.message);
+                         reject(new Error(chrome.runtime.lastError.message || 'Unknown background script error'));
+                    } else if (response && response.success) {
+                         styleLog('Bilibili AI Skip: Database update successful for correction.');
+                         resolve();
+                    } else {
+                         const errorMsg = (response && response.error) ? response.error : 'Unknown background error';
+                         console.info("Bilibili AI Skip: Correction submission error -", errorMsg);
+                         reject(new Error(errorMsg));
+                    }
+                });
+            });
+
+            showPopup(message);
+            styleLog('Bilibili AI Skip: Correction submitted successfully.');
+            closePopup(popup);
+
+        } catch (error) {
+             showPopup('提交失败：' + error.message);
+             console.info('Bilibili AI Skip: Submission failed:', error);
+        }
+    }
+
+    popup.querySelector('#confirm-no-ads').addEventListener('click', () => {
+        if (window.confirm("您确定这个视频没有广告内容吗？这将覆盖之前的记录。")) {
+             const noAdsData = {
+                 ads: [],
+                 msg: "未识别到广告"
+             };
+             submitCorrection(noAdsData, '已提交');
+        } else {
+            showPopup('取消提交');
+        }
+    });
+
+    popup.querySelector('#submit-button').addEventListener('click', async () => {
+        cancelTimeSelectionMode();
+
+        const segments = adSegmentsContainer.querySelectorAll('.ad-segment');
+        const ads = [];
+        let validationError = null;
+        let firstErrorElement = null;
+
+        for (const segment of segments) {
+            const startTimeStr = segment.getAttribute('data-start-seconds');
+            const endTimeStr = segment.getAttribute('data-end-seconds');
+            const productNameInput = segment.querySelector('.product-name');
+            const adContentTextarea = segment.querySelector('.ad-content-textarea');
+            const startTimeDisplay = segment.querySelector('.start-time-display');
+            const endTimeDisplay = segment.querySelector('.end-time-display');
+
+            const productName = productNameInput.value.trim();
+            const adContent = adContentTextarea.value.trim();
+
+            startTimeDisplay.style.borderColor = 'transparent';
+            endTimeDisplay.style.borderColor = 'transparent';
+            productNameInput.style.borderColor = '';
+            adContentTextarea.style.borderColor = '';
+
+            const startTime = (startTimeStr && !isNaN(parseFloat(startTimeStr))) ? parseFloat(startTimeStr) : null;
+            const endTime = (endTimeStr && !isNaN(parseFloat(endTimeStr))) ? parseFloat(endTimeStr) : null;
+
+            if (startTime === null) {
+                validationError = '存在未设置的开始时间';
+                startTimeDisplay.style.borderColor = 'red';
+                if (!firstErrorElement) firstErrorElement = segment.querySelector('.set-start-time');
+                break;
+            }
+            if (endTime === null) {
+                validationError = '存在未设置的结束时间';
+                endTimeDisplay.style.borderColor = 'red';
+                 if (!firstErrorElement) firstErrorElement = segment.querySelector('.set-end-time');
+                break;
+            }
+             if (startTime >= endTime) {
+                 validationError = `开始时间 (${secondsToTime(startTime)}) 必须早于结束时间 (${secondsToTime(endTime)})`;
+                 startTimeDisplay.style.borderColor = 'red';
+                 endTimeDisplay.style.borderColor = 'red';
+                 if (!firstErrorElement) firstErrorElement = startTimeDisplay;
+                 break;
+             }
+
+            if (ads.length > 0) {
+                const prevAd = ads[ads.length - 1];
+                const prevEndTime = parseFloat(prevAd.end_time);
+                if (startTime < prevEndTime) {
+                    validationError = `片段重叠：开始时间 (${secondsToTime(startTime)}) 早于上一个片段的结束时间 (${secondsToTime(prevEndTime)})`;
+                    startTimeDisplay.style.borderColor = 'orange';
+                    const prevSegment = segments[ads.length -1];
+                    if(prevSegment) prevSegment.querySelector('.end-time-display').style.borderColor = 'orange';
+                    if (!firstErrorElement) firstErrorElement = startTimeDisplay;
+                    break;
+                }
+            }
+
+            if (!productName) {
+                 validationError = '产品名称不能为空';
+                 productNameInput.style.borderColor = 'red';
+                  if (!firstErrorElement) firstErrorElement = productNameInput;
+                 break;
+             }
+             if (!adContent) {
+                 validationError = '广告内容不能为空';
+                 adContentTextarea.style.borderColor = 'red';
+                  if (!firstErrorElement) firstErrorElement = adContentTextarea;
+                 break;
+             }
+
+            ads.push({
+                start_time: startTime.toFixed(2),
+                end_time: endTime.toFixed(2),
+                product_name: productName,
+                ad_content: adContent
+            });
+        }
+
+        if (validationError) {
+            showPopup('提交失败：' + validationError);
+            styleLog('Bilibili AI Skip: Validation failed -' + validationError);
+            if (firstErrorElement && typeof firstErrorElement.focus === 'function') {
+                 firstErrorElement.focus();
+            }
+             if(firstErrorElement) {
+                  const errorSegment = firstErrorElement.closest('.ad-segment');
+                  if(errorSegment) {
+                       errorSegment.style.transition = 'outline 0.1s ease-in-out';
+                       errorSegment.style.outline = '2px solid red';
+                       setTimeout(() => { errorSegment.style.outline = 'none'; }, 2000);
+                  }
+             }
+            return;
+        }
+
+        ads.sort((a, b) => parseFloat(a.start_time) - parseFloat(b.start_time));
+
+        const mergedAds = [];
+        let currentAd = null;
+        const mergeThreshold = 1.0;
+
+        for (const ad of ads) {
+            const adStart = parseFloat(ad.start_time);
+            const adEnd = parseFloat(ad.end_time);
+            if (!currentAd) {
+                currentAd = { ...ad, start_time: adStart, end_time: adEnd };
+            } else if (adStart <= currentAd.end_time + mergeThreshold) {
+                currentAd.end_time = Math.max(currentAd.end_time, adEnd);
+                currentAd.product_name = `${currentAd.product_name} | ${ad.product_name}`;
+                currentAd.ad_content = `${currentAd.ad_content}\n---\n${ad.ad_content}`;
+            } else {
+                mergedAds.push({
+                    ...currentAd,
+                    start_time: currentAd.start_time.toFixed(2),
+                    end_time: currentAd.end_time.toFixed(2)
+                });
+                currentAd = { ...ad, start_time: adStart, end_time: adEnd };
+            }
+        }
+        if (currentAd) {
+            mergedAds.push({
+                ...currentAd,
+                start_time: currentAd.start_time.toFixed(2),
+                end_time: currentAd.end_time.toFixed(2)
+            });
+        }
+
+        const correctedAdsData = {
+            ads: mergedAds,
+            msg: mergedAds.length > 0 ? "识别到广告" : "未识别到广告"
+        };
+
+        const submitButton = popup.querySelector('#submit-button');
+        if(submitButton) submitButton.disabled = true; submitButton.textContent = '提交中...';
+
+        try {
+            if(window.confirm("确定提交？这将覆盖之前的记录。")) {      
+                await submitCorrection(correctedAdsData, '纠错提交成功！');
+            }else {
+                showPopup('取消提交');
+                if(submitButton) submitButton.disabled = false; submitButton.textContent = '提交';
+            }
+        } catch (error) {
+             if(submitButton) submitButton.disabled = false; submitButton.textContent = '提交';
+        }
     });
 }
 
