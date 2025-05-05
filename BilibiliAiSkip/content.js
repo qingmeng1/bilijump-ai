@@ -148,10 +148,10 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                             <div style="display: flex; align-items: flex-start; height: 100%;">
                                                 <div style="width: 2px; height: 100%; background-color: #ff0000; margin-right: 10px;"></div>
                                                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                                                    <div style="font-weight: bold; font-size: 16px;">广告 · ${product_name}</div>
+                                                    <div style="font-weight: bold; font-size: 16px;">广告 · ${product_name}<span style="font-size: 11px; color: #cccccc; font-weight: normal; margin-left: 8px;">(按 k 跳过)</span></div>
                                                     <div style="height: 60px; display: flex; align-items: center; flex: 1;">
                                                         <div style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
-                                                            <button id="skip-button" style="color: #fff; font-size: 14px; font-weight: bold; background: linear-gradient(135deg, #48D1CC, #48D1CC); border: none; border-radius: 50%; width: 100%; height: 100%; cursor: pointer; transition: all 0.3s ease;">${Math.ceil(SKIP_TO_TIME - currentTime)}</button>
+                                                            <button id="skip-button" title="按k或点击倒计时跳过" style="color: #fff; font-size: 14px; font-weight: bold; background: linear-gradient(135deg, #48D1CC, #48D1CC); border: none; border-radius: 50%; width: 100%; height: 100%; cursor: pointer; transition: all 0.3s ease;">${Math.ceil(SKIP_TO_TIME - currentTime)}</button>
                                                         </div>
                                                         <div style="overflow: hidden; flex: 1;">
                                                             <div style="word-wrap: break-word;">${ad_content}</div>
@@ -160,7 +160,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                                 </div>
                                             </div>
                                         `;
-
+                                        //popup.title = "按k或点击倒计时跳过";
                                         popup.style.position = 'absolute';
                                         popup.style.bottom = '90px';
                                         popup.style.right = '30px';
@@ -227,6 +227,33 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                 }
             }
         }, 1000);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 'k') {
+                for (let i = 0; i < popups.ads.length; i++) {
+                    const adPopup = popups.ads[i];
+                    if (adPopup && document.body.contains(adPopup)) {
+                        const skipButton = adPopup.querySelector('#skip-button');
+                        if (skipButton) {
+                            skipButton.click();
+                            break;
+                        }
+                    }
+                }
+            } else if (popups.audioCheck && document.body.contains(popups.audioCheck)) {
+                if (event.key.toLowerCase() === 'y') {
+                    const yesButton = popups.audioCheck.querySelector('#yes-button');
+                    if (yesButton) {
+                        yesButton.click();
+                    }
+                } else if (event.key.toLowerCase() === 'n') {
+                    const noButton = popups.audioCheck.querySelector('#no-button');
+                    if (noButton) {
+                        noButton.click();
+                    }
+                }
+            }
+        });
     }
 
     chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -242,6 +269,8 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
 async function adRecognition(bvid,pvid) {
 
     try {
+        let resultS = await chrome.storage.local.get('subtitle');
+
         let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
         const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid, title = videoData.data.title;
         now_cid = cid;
@@ -303,53 +332,64 @@ async function adRecognition(bvid,pvid) {
                 subtitle += `${item.from} --> ${item.to}\n${item.content}\n`;
             });
         }else if(settings.audioEnabled) {
-            if(!settings["aliApiKey"]) {
-                showPopup(`Please set aliApiKey in extension settings`);
-                return {ads:[], msg:"Please set aliApiKey"};
-            }
             type = '音频';
-
-            if (settings.autoAudio)  {
-                showPopup("01:00 后解锁音频分析.");
-                while(document.querySelector('video').currentTime < 60) {
-                    if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
-                        return {ads:[], msg:"上下文已切换."};
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+            if (resultS?.subtitle?.hasOwnProperty(cid)) {
+                subtitle = resultS.subtitle[cid];
+                showPopup("使用音频缓存.");
+            }else {
+                if(!settings["aliApiKey"]) {
+                    showPopup(`Please set aliApiKey in extension settings`);
+                    return {ads:[], msg:"Please set aliApiKey"};
                 }
-                //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
-            } else if(!await checkPopup()) {
-                return {ads:[], msg:"用户拒绝音频分析, 识别结束."};
-            }
+                if (settings.autoAudio)  {
+                    showPopup("01:00 后解锁音频分析.");
+                    while(document.querySelector('video').currentTime < 60) {
+                        if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
+                            return {ads:[], msg:"上下文已切换."};
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    //await new Promise(resolve => setTimeout(resolve, document.querySelector('video').currentTime < 60 ? (60 - document.querySelector('video').currentTime) * 1000 : 0));
+                } else if(!await checkPopup()) {
+                    return {ads:[], msg:"用户拒绝音频分析, 识别结束."};
+                }
 
-            showPopup("使用音频分析.");
-            response = await fetch(`https://api.bilibili.com/x/player/wbi/playurl?bvid=${bvid}&cid=${cid}&qn=0&fnver=0&fnval=80&fourk=1`, {
-                credentials: "include"
-            });
-            const playerData = await response.json(), audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
+                showPopup("使用音频分析.");
+                response = await fetch(`https://api.bilibili.com/x/player/wbi/playurl?bvid=${bvid}&cid=${cid}&qn=0&fnver=0&fnval=80&fourk=1`, {
+                    credentials: "include"
+                });
+                const playerData = await response.json(), audioUrl = playerData?.data?.dash?.audio?.[0]?.base_url;
 
-            if(!audioUrl) {
-                return {ads:[], msg:"获取不到音频文件."};
-            }
-            showPopup("提交音频文件.");
-            styleLog("audioUrl: " + audioUrl);
-            const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
-            styleLog("Task submitted successfully, Task ID: " + taskId);
+                if(!audioUrl) {
+                    return {ads:[], msg:"获取不到音频文件."};
+                }
+                showPopup("提交音频文件.");
+                styleLog("audioUrl: " + audioUrl);
+                const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
+                styleLog("Task submitted successfully, Task ID: " + taskId);
 
-            showPopup("等待音频分析结果.");
-            const results = await waitForTaskCompletion(taskId);
+                showPopup("等待音频分析结果.");
+                const results = await waitForTaskCompletion(taskId);
 
-            for (const result of results) {
-                if (result.subtask_status === "SUCCEEDED") {
-                    const transcription = await fetchTranscription(result.transcription_url);
-                    subtitle = generateSubtitle(transcription);
-                    //styleLog("Subtitle content:\n", subtitle);
-                } else {
-                    styleLog(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
-                    if(result.code === "SUCCESS_WITH_NO_VALID_FRAGMENT") {
-                        return {ads:[], msg:"音频无有效片段."};
+                for (const result of results) {
+                    if (result.subtask_status === "SUCCEEDED") {
+                        const transcription = await fetchTranscription(result.transcription_url);
+                        subtitle = generateSubtitle(transcription);
+
+                        resultS = await chrome.storage.local.get('subtitle');
+                        const updatedSubtitles = {
+                          ...(resultS.subtitle || {}),
+                          [cid]: subtitle
+                        };
+                        await chrome.storage.local.set({subtitle: updatedSubtitles});
+                        //styleLog("Subtitle content:\n", subtitle);
                     } else {
-                        return {ads:[], msg:`音频解析失败：${result.message}`};
+                        styleLog(`Subtask failed for file ${result.file_url}, status: ${result.subtask_status}`);
+                        if(result.code === "SUCCESS_WITH_NO_VALID_FRAGMENT") {
+                            return {ads:[], msg:"音频无有效片段."};
+                        } else {
+                            return {ads:[], msg:`音频解析失败：${result.message}`};
+                        }
                     }
                 }
             }
@@ -402,6 +442,11 @@ async function adRecognition(bvid,pvid) {
         });
 
         correctButton(cid, resultAD);
+        resultS = await chrome.storage.local.get('subtitle');
+        if (resultS?.subtitle?.hasOwnProperty(cid)) {
+            delete resultS.subtitle[cid];
+            await chrome.storage.local.set({ subtitle: resultS.subtitle });
+        }
         return resultAD;
     } catch (error) {
         showPopup("Error: " + JSON.stringify(error));
@@ -412,47 +457,10 @@ async function adRecognition(bvid,pvid) {
     }
 
     async function callOpenAI(subtitle) {
+        const storageData = await chrome.storage.sync.get('prompt');
         const requestData = {
             model: settings.apiModel,
-            messages: [ {role: "system", content: `
-请按照以下步骤分析提供的字幕内容（包含标题、时间轴和文本），识别可能存在的广告段落：
-
-1. **基础特征扫描**
-
-* 关键词检测：查找以下类型词汇
-  √ 直接推广类（赞助、促销、限时优惠）
-  √ 联系信息类（官网、二维码、400电话）
-  √ 品牌标识类（"点击下方链接"、"关注公众号"）
-* 结构特征分析：
-  √ 固定开头/结尾模板（如"本节目由...赞助"）
-  √ 重复出现的品牌名称（≥3次非常规提及）
-  √ 区分测评类视频，测评不识别为广告（≤1一个品牌或产品）
-
-2. **上下文关联分析**
-
-* 判断内容与前后文的相关性
-* 检测突兀的产品功能介绍（如突然插入设备参数说明）
-* 注意软性植入（主持人非自然口播提及产品）
-
-3. **时空特征识别**
-
-* 高频广告位置标记（片头15秒/片中转场处）
-* 异常时长段落（超过常规字幕时长的独立内容块）
-
-
-**附加要求：**
-
-* 区分赞助声明与实质广告内容
-* 生成品牌提及频率统计表
-* 非中文内容需要先翻译为中文再识别
-* 返回的产品名称和广告内容不能太长
-* 正确识别时间轴与字幕内容的顺序，时间轴在字幕内容上方，示例：397.17 --> 399.24\n这就要打开美团外卖app了
-* 如果多段广告的开始与结束时间范围重叠了就合并为一条
-* 如果广告时间从单段字幕中间部分开始，以单段时长/文字占比作为开始时间，例如："447.34 --> 458.29\n只能说呢啊美国人眼里也是有活的啊，顺带一说呢，更有活的是火凤燎原第二季，每周四哔哩哔哩独家热播，感兴趣的同学们可以追番观看啊。", 字幕内容长度为 63，广告开始为第 17 个字符，公式为 (17/63)*(458.29-447.23)+447.23=450.214，开始时间为450.214
-* 如果广告片段少于 15 秒，忽略该段广告
-
-请把产品名称与广告内容精简后严格以这样的json的格式返回：
-        {"ads": [{"start_time": "335.88","end_time": "425.34","product_name": "产品名称","ad_content": "广告内容"},"msg": "识别到广告"]}`},
+            messages: [ {role: "system", content: storageData.prompt},
                         {role: "user", content: subtitle}]};
 
         let response;
@@ -509,8 +517,8 @@ async function checkPopup() {
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px;">没有可识别字幕</div>
                 <div style="font-size: 14px; margin-bottom: 15px;">是否启用音频分析? 音频分析大约需要一分钟。</div>
                 <div style="display: flex; gap: 10px;">
-                    <button id="yes-button" style="padding: 5px 15px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer;">是</button>
-                    <button id="no-button" style="padding: 5px 15px; background: #ccc; color: #333; border: none; border-radius: 4px; cursor: pointer;">否</button>
+                    <button id="yes-button" style="padding: 5px 15px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer;">是(y)</button>
+                    <button id="no-button" style="padding: 5px 15px; background: #ccc; color: #333; border: none; border-radius: 4px; cursor: pointer;">否(n)</button>
                 </div>
             </div>
         `;

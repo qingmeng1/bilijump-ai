@@ -46,12 +46,23 @@ async function getDnsConfig(dns) {
   return settings;
 }
 
+async function loadPrompt() {
+  const promptURL = chrome.runtime.getURL('prompt.txt');
+  const response = await fetch(promptURL);
+  while(!response.ok) {
+    response = await fetch(promptURL);
+  }
+  const promptText = await response.text();
+  await chrome.storage.sync.set({ prompt: promptText });
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   let uid = await chrome.storage.sync.get('uid');
   if(!uid?.uid) {
     chrome.storage.sync.set({uid: crypto.randomUUID()});
   }
   await initConfig();
+  await loadPrompt();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
