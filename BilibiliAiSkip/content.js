@@ -1244,9 +1244,18 @@ function updateTimes(cid, skip_time) {
 }
 
 function correctButton(cid, data) {
+    let adLength = data.ads.length;
+    let adTime = 0;
+    data.ads.forEach(ad => {
+        const duration = ad.end_time - ad.start_time;
+        adTime += duration;
+    });
+    adTime = adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3;
+    let iconUse = adLength>adTime?adLength:adTime;
+
     let playerRight = document.querySelector('.bpx-player-control-bottom-right');
     var correct = document.createElement('div');
-    correct.innerHTML = `<div class="bpx-player-ctrl-quality-result"><img src="${chrome.runtime.getURL('icons/icon48_red_'+(data.ads.length>3?'3':data.ads.length)+'.png')}" alt="icon" style="width: 22px; height: 22px; bottom: ${6-data.ads.length}px;"><span style="color: hsla(0,0%,100%,.8);">纠错  </span> </div>`;
+    correct.innerHTML = `<div class="bpx-player-ctrl-quality-result"><img src="${chrome.runtime.getURL('icons/icon48_red_'+iconUse+'.png')}" alt="icon" style="width: 22px; height: 22px; bottom: ${6-iconUse}px;"><span style="color: hsla(0,0%,100%,.8);">纠错  </span> </div>`;
     correct.id = 'bilibili-ai-skip-correct';
     correct.style.width = 'auto';
     correct.style.height = '22px';
