@@ -25,15 +25,20 @@
   
 
   
-## v2.3.8 版本更新
+## v2.3.9 版本更新
 
-* **人工纠错功能**：当 AI 错误识别广告片段时，可以手动修正广告的开始和结束时间。通过更新云端缓存数据，这有助于为其他用户提高识别准确率。
-* **键盘快捷键**：
-    * 当显示手动跳过提示时，按“k”键可立即跳过当前广告片段。
-    * 当未找到字幕并提示进行音频分析时，按“y”键（是）或“n”键（否）进行选择。
+* **增加几个icon**： 增加几个 "含饭量" icon
+
+<div align="center">
+ <img width="30" src="BilibiliAiSkip/icons/icon48_red_0.png" alt="logo">
+ <img width="30" src="BilibiliAiSkip/icons/icon48_red_1.png" alt="logo">
+ <img width="30" src="BilibiliAiSkip/icons/icon48_red_2.png" alt="logo">
+ <img width="30" src="BilibiliAiSkip/icons/icon48_red_3.png" alt="logo">
+</div>
 
 ### 过往更新回顾
 
+* **v2.3.8**：人工纠错功能；键盘快捷键。
 * **v2.3.6**：修复了一些已知的 bug，并优化了 AI 的提示（prompt），以提升其性能和理解能力。
 * **v2.3.5**：视频进度条中的广告部分现已高亮为橙色，使广告区间更加清晰可见。
 * **v2.3.4**：增加了一个内置的免费 API 选项（由作者付费维护，不定期更新），并添加了多个官方及优质第三方 AI API 的选项。
