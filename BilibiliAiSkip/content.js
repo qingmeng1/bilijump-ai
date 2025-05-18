@@ -54,17 +54,17 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     video = document.querySelector('video');
                 }
-                showPopup(`视频长度：${Math.ceil(video.duration)}s`);
+                popups.others.push(showPopup(`视频长度：${Math.ceil(video.duration)}s`));
                 if((video?.duration || 0) < 120) {
                     styleLog(video.duration);
-                    showPopup('短视频，无需分析广告');
+                    popups.others.push(showPopup('短视频，无需分析广告'));
                     return;
                 }
                 try {
                     let adsData = await adRecognition(bvid,pvid);
                     for(let i = 1; i < 3 && adsData == null; i++) {
                         styleLog(adsData);
-                        showPopup('Re-fetch AD data.');
+                        popups.others.push(showPopup('Re-fetch AD data.'));
                         adsData = await adRecognition(bvid,pvid);
                     }
                     styleLog(`广告数据: ` + JSON.stringify(adsData));
@@ -93,8 +93,8 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                         for (let i = 0; i < adsData.ads.length; i++) {
                             let TARGET_TIME = adsData.ads[i].start_time, SKIP_TO_TIME = adsData.ads[i].end_time, product_name = adsData.ads[i].product_name, ad_content = adsData.ads[i].ad_content;
                             intervals[i] = setInterval(skipVideoAD, 1000);
-                            showPopup(`广告时间：${getTime(TARGET_TIME)} --> ${getTime(SKIP_TO_TIME)}`);
-                            showPopup(`产品名称：${product_name}`);
+                            popups.others.push(showPopup(`广告时间：${getTime(TARGET_TIME)} --> ${getTime(SKIP_TO_TIME)}`));
+                            popups.others.push(showPopup(`产品名称：${product_name}`));
                             //showPopup(`广告内容：${ad_content}`);
                             new Promise(async resolve => {
                                 if(segment_progress.length > 0) {
@@ -127,7 +127,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                 if (currentTime > TARGET_TIME && currentTime < SKIP_TO_TIME) {
                                     if(settings.autoJump){
                                         video.currentTime = SKIP_TO_TIME;
-                                        showPopup('广告已跳过.');
+                                        popups.others.push(showPopup('广告已跳过.'));
                                         updateTimes(now_cid, SKIP_TO_TIME - TARGET_TIME);
                                         //clearInterval(intervals[i]);
                                     } else {
@@ -137,7 +137,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                         }
                                         const playerContainer = document.querySelector('.bpx-player-container');
                                         if (!playerContainer) {
-                                            console.info('Player container not found.');
+                                            styleLog('Player container not found.');
                                             return;
                                         }
 
@@ -205,7 +205,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                             popups.ads[i].remove();
                                             popups.ads[i] = undefined;
                                             video.currentTime = SKIP_TO_TIME;
-                                            showPopup('广告已跳过.');
+                                            popups.others.push(showPopup('广告已跳过.'));
                                             updateTimes(now_cid, SKIP_TO_TIME - TARGET_TIME);
                                         });
 
@@ -221,7 +221,9 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                 }
                             }
                         }
-                    } else showPopup(adsData?.msg || "无有效数据");
+                    } else {
+                        popups.others.push(showPopup(adsData?.msg || "无有效数据"));
+                    }
                 } catch (error) {
                     console.info('Failed to fetch ad time:', error);
                 }
@@ -298,14 +300,14 @@ async function adRecognition(bvid,pvid) {
         });
 
         if(dbResults) {
-            showPopup(`使用云端数据, 模型: ${dbResults?.model}.`);
+            popups.others.push(showPopup(`使用云端数据, 模型: ${dbResults?.model}.`));
             correctButton(cid, JSON.parse(dbResults?.data));
             return JSON.parse(dbResults?.data);
         }
 
         for(const key of ["apiKey", "apiURL", "apiModel"]) {
             if(!settings[key]) {
-                showPopup(`Please set ${key} in extension settings`);
+                popups.others.push(showPopup(`Please set ${key} in extension settings`));
                 return {ads:[], msg:`Please set ${key}`};
             }
         }
@@ -324,7 +326,7 @@ async function adRecognition(bvid,pvid) {
         let subtitle = "", type;
         if (subtitleUrl) {
             type = '字幕';
-            showPopup("使用字幕分析.");
+            popups.others.push(showPopup("使用字幕分析."));
             response = await fetch(`https:${subtitleUrl}`);
             const subtitleData = await response.json();
 
@@ -335,14 +337,14 @@ async function adRecognition(bvid,pvid) {
             type = '音频';
             if (resultS?.subtitle?.hasOwnProperty(cid)) {
                 subtitle = resultS.subtitle[cid];
-                showPopup("使用音频缓存.");
+                popups.others.push(showPopup("使用音频缓存."));
             }else {
                 if(!settings["aliApiKey"]) {
                     showPopup(`Please set aliApiKey in extension settings`);
                     return {ads:[], msg:"Please set aliApiKey"};
                 }
                 if (settings.autoAudio)  {
-                    showPopup("01:00 后解锁音频分析.");
+                    popups.others.push(showPopup("01:00 后解锁音频分析."));
                     while(document.querySelector('video').currentTime < 60) {
                         if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
                             return {ads:[], msg:"上下文已切换."};
@@ -354,7 +356,7 @@ async function adRecognition(bvid,pvid) {
                     return {ads:[], msg:"用户拒绝音频分析, 识别结束."};
                 }
 
-                showPopup("使用音频分析.");
+                popups.others.push(showPopup("使用音频分析."));
                 response = await fetch(`https://api.bilibili.com/x/player/wbi/playurl?bvid=${bvid}&cid=${cid}&qn=0&fnver=0&fnval=80&fourk=1`, {
                     credentials: "include"
                 });
@@ -363,12 +365,12 @@ async function adRecognition(bvid,pvid) {
                 if(!audioUrl) {
                     return {ads:[], msg:"获取不到音频文件."};
                 }
-                showPopup("提交音频文件.");
+                popups.others.push(showPopup("提交音频文件."));
                 styleLog("audioUrl: " + audioUrl);
                 const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
                 styleLog("Task submitted successfully, Task ID: " + taskId);
 
-                showPopup("等待音频分析结果.");
+                popups.others.push(showPopup("等待音频分析结果."));
                 const results = await waitForTaskCompletion(taskId);
 
                 for (const result of results) {
@@ -455,40 +457,40 @@ async function adRecognition(bvid,pvid) {
         if(popups.ai) closePopup(popups.ai);
         return null;
     }
+}
 
-    async function callOpenAI(subtitle) {
-        const storageData = await chrome.storage.sync.get('prompt');
-        const requestData = {
-            model: settings.apiModel,
-            messages: [ {role: "system", content: storageData.prompt},
-                        {role: "user", content: subtitle}]};
+async function callOpenAI(subtitle) {
+    const storageData = await chrome.storage.sync.get('prompt');
+    const requestData = {
+        model: settings.apiModel,
+        messages: [ {role: "system", content: storageData.prompt},
+                    {role: "user", content: subtitle}]};
 
-        let response;
-        for (var i = 0; i < 3;) {
-            try {
-                response = await fetch(settings.apiURL, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
-                    body: JSON.stringify(requestData)
-                });
-                i = 3;
-            } catch (error) {
-                i++;
-            }
+    let response;
+    for (var i = 0; i < 3;) {
+        try {
+            response = await fetch(settings.apiURL, {
+                method: "POST",
+                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
+                body: JSON.stringify(requestData)
+            });
+            i = 3;
+        } catch (error) {
+            i++;
         }
-
-        const data = await response.json();
-        if (data.error?.message) {
-            showPopup("API error: " + data.error.message);
-            return "";
-        }
-
-        if (!data.choices?.length) {
-            showPopup("未收到有效响应.");
-            return "";
-        }
-        return data;
     }
+
+    const data = await response.json();
+    if (data.error?.message) {
+        showPopup("API error: " + data.error.message);
+        return "";
+    }
+
+    if (!data.choices?.length) {
+        showPopup("未收到有效响应.");
+        return "";
+    }
+    return data;
 }
 
 let popupCount = 0;
@@ -670,9 +672,10 @@ function showCorrectionPopup(cid, currentAdsData) {
                 <div id="empty-state" style="text-align: center; color: #ccc; padding: 20px; display: none;">当前未识别到广告片段。<br>您可以手动添加。</div>
             </div>
             <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 5px;">
-                <button id="add-segment" style="flex-basis: 30%; padding: 8px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">增加片段</button>
-                <button id="confirm-no-ads" style="flex-basis: 30%; padding: 8px; background: #ff9800; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">无广告</button>
-                <button id="submit-button" style="flex-basis: 30%; padding: 8px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">提交</button>
+                <button id="ai-re-recog" style="flex-basis: 25%; padding: 8px; background: #a19cef; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">AI重新识别</button>
+                <button id="add-segment" style="flex-basis: 25%; padding: 8px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">增加片段</button>
+                <button id="confirm-no-ads" style="flex-basis: 25%; padding: 8px; background: #ff9800; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">无广告</button>
+                <button id="submit-button" style="flex-basis: 25%; padding: 8px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">提交</button>
             </div>
         </div>
     `;
@@ -912,7 +915,7 @@ function showCorrectionPopup(cid, currentAdsData) {
         closePopup(popup);
     });
 
-    async function submitCorrection(adsData, message) {
+    async function submitCorrection(adsData, message, model) {
         cancelTimeSelectionMode();
         if (typeof settings === 'undefined' || !settings.cfApiURL || !settings.cfApiKey) {
              showPopup("提交失败：无法访问配置");
@@ -928,7 +931,7 @@ function showCorrectionPopup(cid, currentAdsData) {
                     cfApiKey: settings.cfApiKey,
                     body: {
                         sql: `UPDATE bilijump SET data = ?, model = ? WHERE cid = ?;`,
-                        params: [JSON.stringify(adsData), 'artificial', cid]
+                        params: [JSON.stringify(adsData), model, cid]
                     }
                 }, response => {
                     if (chrome.runtime.lastError) {
@@ -948,12 +951,86 @@ function showCorrectionPopup(cid, currentAdsData) {
             showPopup(message);
             styleLog('Bilibili AI Skip: Correction submitted successfully.');
             closePopup(popup);
-
+            showPopup("页面将在3秒后刷新...");
+            setTimeout(() => { location.reload(); }, 3000);
         } catch (error) {
              showPopup('提交失败：' + error.message);
              console.info('Bilibili AI Skip: Submission failed:', error);
         }
     }
+
+    popup.querySelector('#ai-re-recog').addEventListener('click', async () => {
+        if (window.confirm("您确定使用 AI 重新识别广告吗？这将覆盖之前的记录。")) {
+            let bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
+            let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
+            const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid;
+
+            let dbResults = await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({
+                    action: "dbQuery",
+                    url: settings.cfApiURL,
+                    method: "POST",
+                    cfApiKey: settings.cfApiKey,
+                    body: {sql: "SELECT subtitle FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
+                }, response => {
+                    if (response.success) {
+                        resolve(response?.data?.result?.[0]?.results?.[0]);
+                    } else {
+                        styleLog("Background fetch error: " + response.error);
+                        reject(new Error(response.error));
+                    }
+                });
+            });
+
+            if(dbResults?.subtitle) {
+                for(const key of ["apiKey", "apiURL", "apiModel"]) {
+                    if(!settings[key]) {
+                        popups.others.push(showPopup(`Please set ${key} in extension settings`));
+                        return {ads:[], msg:`Please set ${key}`};
+                    }
+                }
+
+                if (banModels.includes(settings.apiModel)) {
+                    showPopup(`禁用 ${settings.apiModel} 模型，效果太差`);
+                    return {ads:[], msg: `请使用其他模型`};
+                }
+
+                popups.ai = showPopup(`使用 ${settings.apiModel} 重新分析中...`,1);
+                popups.others.push(popups.ai);
+
+                let data = await callOpenAI(dbResults.subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
+                for(let i = 1; i < 3 && !aiResponse; i++) {
+                    showPopup('Re-fetch AI.');
+                    aiResponse = await callOpenAI(dbResults.subtitle);
+                }
+                closePopup(popups.ai);
+
+
+                if (!aiResponse) {
+                    showPopup("AI 解析失败.");
+                    return
+                }
+
+                const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
+                let resultAD;
+                if (jsonMatch && jsonMatch[1]) {
+                    const jsonContent = jsonMatch[1].trim();
+                    resultAD = JSON.parse(jsonContent);
+                }else {
+                    try {
+                        resultAD = JSON.parse(aiResponse);
+                    } catch (error) {
+                        showPopup("AAI 分析结果获取失败. " + error);
+                        return
+                    }
+                }
+
+                submitCorrection(resultAD, '重新识别已完成.', settings.apiModel);
+            }
+        } else {
+            showPopup('取消提交');
+        }
+    });
 
     popup.querySelector('#confirm-no-ads').addEventListener('click', () => {
         if (window.confirm("您确定这个视频没有广告内容吗？这将覆盖之前的记录。")) {
@@ -961,7 +1038,7 @@ function showCorrectionPopup(cid, currentAdsData) {
                  ads: [],
                  msg: "未识别到广告"
              };
-             submitCorrection(noAdsData, '已提交');
+             submitCorrection(noAdsData, '已提交', 'artificial');
         } else {
             showPopup('取消提交');
         }
@@ -1107,7 +1184,7 @@ function showCorrectionPopup(cid, currentAdsData) {
 
         try {
             if(window.confirm("确定提交？这将覆盖之前的记录。")) {      
-                await submitCorrection(correctedAdsData, '纠错提交成功！');
+                await submitCorrection(correctedAdsData, '纠错提交成功！', 'artificial');
             }else {
                 showPopup('取消提交');
                 if(submitButton) submitButton.disabled = false; submitButton.textContent = '提交';
