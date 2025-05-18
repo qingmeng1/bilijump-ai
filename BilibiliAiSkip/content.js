@@ -918,8 +918,15 @@ function showCorrectionPopup(cid, currentAdsData) {
     async function submitCorrection(adsData, message, model) {
         cancelTimeSelectionMode();
         if (typeof settings === 'undefined' || !settings.cfApiURL || !settings.cfApiKey) {
-             showPopup("提交失败：无法访问配置");
-             return; 
+            showPopup("提交失败：无法访问配置");
+            return;
+        }
+
+        if (JSON.stringify(adsData) == JSON.stringify(currentAdsData)) {
+            const submitButton = popup.querySelector('#submit-button');
+            if(submitButton) submitButton.disabled = false; submitButton.textContent = '提交';
+            showPopup("数据无变化");
+            return; 
         }
 
         try {
