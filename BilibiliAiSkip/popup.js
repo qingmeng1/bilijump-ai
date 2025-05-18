@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
         
         chrome.storage.sync.set(settings, () => {
+            chrome.action.setIcon({path: settings.enabled?'icons/icon48_red_3.png':'icons/icon48_blue.png'});
             const s = document.getElementById('status');
             s.textContent = 'Saved';
             s.classList.add('show');

@@ -1244,14 +1244,9 @@ function updateTimes(cid, skip_time) {
 }
 
 function correctButton(cid, data) {
-    let adLength = data.ads.length;
-    let adTime = 0;
-    data.ads.forEach(ad => {
-        const duration = ad.end_time - ad.start_time;
-        adTime += duration;
-    });
-    adTime = adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3;
-    let iconUse = adLength>adTime?adLength:adTime;
+    const adLength = data.ads.length;
+    const adTime = data.ads.reduce((sum, ad) => sum + (parseFloat(ad.end_time) - parseFloat(ad.start_time)), 0);
+    const iconUse = Math.max(adLength, adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3);
 
     let playerRight = document.querySelector('.bpx-player-control-bottom-right');
     var correct = document.createElement('div');
