@@ -345,7 +345,7 @@ async function adRecognition(bvid,pvid) {
                 }
                 if (settings.autoAudio)  {
                     popups.others.push(showPopup("01:00 后解锁音频分析."));
-                    while(document.querySelector('video').currentTime < 60) {
+                    while(document.querySelector('video').currentTime < 45) {
                         if(window.location.pathname.split('/')[2] !== bvid || new URLSearchParams(window.location.search).get('p') !== pvid) {
                             return {ads:[], msg:"上下文已切换."};
                         }

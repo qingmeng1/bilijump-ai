@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Bilibili AI Skip</title>
+    <meta charset="UTF-8">
     <style>
         body {
             padding: 20px;
@@ -257,7 +258,7 @@
     <h3>Bilibili AI Skip</h3>
     <div class="setting">
         <label class="checkbox-label" for="enabled">
-            Enable Extension
+            启用插件
             <span>
                 <input type="checkbox" id="enabled">
                 <span class="switch"></span>
@@ -266,7 +267,7 @@
     </div>
     <div class="setting">
         <label class="checkbox-label" for="autoJump">
-            Auto Skip Ads
+            自动跳过广告
             <span>
                 <input type="checkbox" id="autoJump">
                 <span class="switch"></span>
@@ -274,9 +275,9 @@
         </label>
     </div>
     <div class="setting">
-        <label for="apiURL">API URL</label>
+        <label for="apiURL">AI API URL</label>
         <div style="position: relative;">
-            <input type="text" id="apiURL" placeholder="Enter API URL or click for options">
+            <input type="text" id="apiURL" placeholder="输入 API URL 或点击选择">
             <div id="apiURLDropdown" class="apiURLDropdown">
                 <div class="dropdown-option" id="free" style="color: #4fcf54;">free</div>
                 <div class="dropdown-option" data-value="https://api.x.ai/v1/chat/completions">grok <a href="https://console.x.ai" target="_blank">register</a></div>
@@ -291,18 +292,18 @@
         <small>(e.g., https://www.openai.com/v1/chat/completions)</small>
     </div>
     <div class="setting">
-        <label for="apiKey">API Key</label>
-        <input type="text" id="apiKey" placeholder="Enter your API Key">
+        <label for="apiKey">AI API Key</label>
+        <input type="text" id="apiKey" placeholder="输入 AI API Key">
         <small>(e.g., sk-xxxxxx...)</small>
     </div>
     <div class="setting">
-        <label for="apiModel">AI Model</label>
-        <input type="text" id="apiModel" placeholder="Enter API Model">
+        <label for="apiModel">AI 模型</label>
+        <input type="text" id="apiModel" placeholder="输入 AI 模型名称">
         <small>(e.g., gpt-4o-mini, deepseek-v3...)</small>
     </div>
     <div class="setting">
         <label class="checkbox-label" for="audioEnabled">
-            Enable Audio
+            启用音频分析 (无字幕时)
             <span>
                 <input type="checkbox" id="audioEnabled">
                 <span class="switch"></span>
@@ -311,17 +312,18 @@
     </div>
     <div class="setting">
         <label class="checkbox-label" for="autoAudio">
-            Auto Audio Analysis
+            自动进行音频分析
             <span>
                 <input type="checkbox" id="autoAudio">
                 <span class="switch"></span>
             </span>
         </label>
+        <small>(启用后，若无字幕将在播放 45 秒后自动分析)</small>
     </div>
     <div class="setting">
-        <label for="aliApiKey">Aliyun API Key <a href="https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen" target="_blank">Apply</a></label>
-        <input type="text" id="aliApiKey" placeholder="Enter your Aliyun API Key">
-        <small>(e.g., sk-xxxxxx...)</small>
+        <label for="aliApiKey">阿里云 API Key <a href="https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen" target="_blank">Apply</a></label>
+        <input type="text" id="aliApiKey" placeholder="输入阿里云 API Key">
+        <small>(用于 Paraformer 语音识别，例如: sk-xxxxxx...)</small>
     </div>
     <div id="status"></div>
     <script src="popup.js"></script>
