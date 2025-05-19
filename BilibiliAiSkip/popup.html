@@ -227,17 +227,17 @@
         }
 
         .apiURLDropdown {
-            display: none; 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            right: 0; 
-            background: #ffffff; 
-            border: 1px solid rgba(89,184,93,0.5); 
-            border-radius: 6px; 
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); 
-            z-index: 10; 
-            max-height: 150px; 
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid rgba(89,184,93,0.5);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            max-height: 150px;
             overflow-y: auto;
         }
 
@@ -252,6 +252,46 @@
             text-decoration: underline;
         }
 
+    </style>
+    <style>
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f7f9fc;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #fff, #3498dbb5);
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #2980b9, #3498db);
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
+        .apiURLDropdown::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .apiURLDropdown::-webkit-scrollbar-track {
+            background: #fdfdfd;
+        }
+
+        .apiURLDropdown::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #f7f9fc, rgba(89,184,93,0.5));
+            border-radius: 2px;
+        }
+
+        .apiURLDropdown::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #3498db, #2980b9);
+        }
     </style>
 </head>
 <body>
