@@ -25,20 +25,12 @@
   
 
   
-## v2.3.9 版本更新
-
-* **增加AI重新识别**： 纠错页面中增加 AI 重新识别选项，可使用自己的 AI 模型进行重新识别。
-* **增加icon**： 增加 "含饭量" icon，展示视频含饭量。
-
-<div align="center">
- <img width="30" src="BilibiliAiSkip/icons/icon48_red_0.png" alt="logo">
- <img width="30" src="BilibiliAiSkip/icons/icon48_red_1.png" alt="logo">
- <img width="30" src="BilibiliAiSkip/icons/icon48_red_2.png" alt="logo">
- <img width="30" src="BilibiliAiSkip/icons/icon48_red_3.png" alt="logo">
-</div>
+## v2.3.10 版本更新
+* **增加 UP主/标签 过滤**： 设置页面中设置需要过滤的UP主或标签，匹配规则的视频则不进行广告识别。
 
 ### 过往更新回顾
 
+* **v2.3.9**：增加AI重新识别；修改icon。
 * **v2.3.8**：增加人工纠错功能；键盘快捷键。
 * **v2.3.6**：修复了一些已知的 bug，并优化了 AI 的提示（prompt），以提升其性能和理解能力。
 * **v2.3.5**：视频进度条中的广告部分现已高亮为橙色，使广告区间更加清晰可见。
