@@ -1,7 +1,7 @@
 let settings;
 let banModels;
 
-const configKeys = ['autoJump','enabled','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
+const configKeys = ['autoJump','enabled','tagFilter','apiKey','apiURL','apiModel','audioEnabled','autoAudio','aliApiKey'];
 let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now_cid;
 
 (async function() {
@@ -39,6 +39,19 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
             if(bvid == 'watchlater') bvid = new URLSearchParams(window.location.search).get('bvid');
             if(bid !== bvid || pid !== pvid){
                 bid = bvid, pid = pvid;
+
+                const tagFilter = settings.tagFilter || "";
+                const filterTags = tagFilter.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag !== "");
+                if (filterTags.length > 0) {
+                    const tagElements = document.querySelectorAll('.tag-panel .tag .ordinary-tag a');
+                    const author = document.querySelector('meta[name="author"]')?.getAttribute('content');
+                    const tags = Array.from(tagElements).map(element => element.innerHTML.toLowerCase());
+                    if (author) tags.push(author);
+                    if (filterTags.some(tag => tags.includes(tag))) {
+                        popups.others.push(showPopup(`过滤列表，跳过`));
+                        return;
+                    }
+                }
 
                 while (intervals.length) clearInterval(intervals.shift());
                 while (popups.others.length) popups.others.shift()?.remove();

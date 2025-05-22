@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const keys = ['autoJump', 'enabled', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
+    const keys = ['autoJump', 'enabled', 'tagFilter', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
 
     let response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent('bilijump-ai-api-config.oooo.uno')}&type=TXT`);
     let aiconfig = await response.json();
