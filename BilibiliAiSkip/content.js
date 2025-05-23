@@ -1343,7 +1343,7 @@ function updateTimes(cid, skip_time) {
 function correctButton(cid, data) {
     const adLength = data.ads.length;
     const adTime = data.ads.reduce((sum, ad) => sum + (parseFloat(ad.end_time) - parseFloat(ad.start_time)), 0);
-    const iconUse = Math.max(adLength, adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3);
+    const iconUse = Math.max(adLength < 3 ? adLength : 3, adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3);
 
     let playerRight = document.querySelector('.bpx-player-control-bottom-right');
     var correct = document.createElement('div');
