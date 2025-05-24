@@ -4573,6 +4573,7 @@
                 value: PGCAnyModel.toBinary(getPGCAnyModel(segments)),
             };
         }
+        console.log(JSON.stringify(message));
         return PlayViewUniteReply.toBinary(message);
     }
     function getPGCAnyModel(segments) {
