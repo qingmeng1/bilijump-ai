@@ -3721,6 +3721,7 @@
                         break;
                     case /* google.protobuf.Any supplement */ 5:
                         message.supplement = Any.internalBinaryRead(reader, reader.uint32(), options, message.supplement);
+                        console.log(JSON.stringify(message.supplement));
                         break;
                     case /* bilibili.playershared.PlayArc play_arc */ 6:
                         message.playArc = PlayArc.internalBinaryRead(reader, reader.uint32(), options, message.playArc);
