@@ -4503,7 +4503,7 @@
                 "Authorization": `Bearer Dmlpe9TkvsvBCE0N-FkqeRkN5ANCyHTnUSnAtGCH`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ body: { sql: "SELECT data,model FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid] } }),
+            body: JSON.stringify({ sql: "SELECT data,model FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid] }),
         };
         return new Promise(resolve => {
             $httpClient.post(params, (error, response, data) => {
