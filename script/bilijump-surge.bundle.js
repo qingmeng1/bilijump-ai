@@ -4530,6 +4530,7 @@
         const emptyBytes = new Uint8Array(0);
         const binaryBody = getBinaryBody(body);
         const message = PlayViewUniteReply.fromBinary(binaryBody);
+        console.log(JSON.stringify(message));
         if (message.viewInfo) {
             message.viewInfo.promptBar = emptyBytes;
         }
@@ -4575,11 +4576,9 @@
         return PlayViewUniteReply.toBinary(message);
     }
     function getPGCAnyModel(segments) {
-        const clipInfo = getClipInfo(segments);
-        console.log(JSON.stringify(clipInfo));
         return {
             business: {
-                clipInfo: clipInfo,
+                clipInfo: getClipInfo(segments),
                 vipStatus: 1,
                 episodeInfo: {
                     epId: 1231523,
