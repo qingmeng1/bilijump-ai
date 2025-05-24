@@ -4575,9 +4575,11 @@
         return PlayViewUniteReply.toBinary(message);
     }
     function getPGCAnyModel(segments) {
+        const clipInfo = getClipInfo(segments);
+        console.log(JSON.stringify(clipInfo));
         return {
             business: {
-                clipInfo: getClipInfo(segments),
+                clipInfo: clipInfo,
                 vipStatus: 1,
                 episodeInfo: {
                     epId: 1231523,
@@ -4629,7 +4631,6 @@
         rawBody[0] = 0; // 直接置protobuf 为未压缩状态
         rawBody.set(checksum, 1); // 1-4位： 校验值(4位)
         rawBody.set(body, 5); // 5-end位：protobuf数据
-        console.log(JSON.stringify(body));
         return rawBody;
     }
     function Checksum(num) {
