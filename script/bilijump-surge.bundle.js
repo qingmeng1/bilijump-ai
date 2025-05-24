@@ -4543,7 +4543,7 @@
                 }
             });
         }
-        if (segments.length) {
+        if (segments?.length) {
             console.log(`${cid}: ${JSON.stringify(segments)}`);
             const arcConfs = message.playArcConf?.arcConfs || {};
             [ConfType.SKIPOPED].forEach(i => {
