@@ -4454,9 +4454,423 @@
      */
     const PGCAnyModel = new PGCAnyModel$Type();
 
+    /**
+     * @generated from protobuf enum bilibili.community.service.dm.v1.DmColorfulType
+     */
+    var DmColorfulType;
+    (function (DmColorfulType) {
+        /**
+         * @generated from protobuf enum value: NONE_TYPE = 0;
+         */
+        DmColorfulType[DmColorfulType["NONE_TYPE"] = 0] = "NONE_TYPE";
+        /**
+         * @generated from protobuf enum value: VIP_GRADUAL_COLOR = 60001;
+         */
+        DmColorfulType[DmColorfulType["VIP_GRADUAL_COLOR"] = 60001] = "VIP_GRADUAL_COLOR";
+    })(DmColorfulType || (DmColorfulType = {}));
+    // @generated message type with reflection information, may provide speed optimized methods
+    class DmViewReply$Type extends MessageType {
+        constructor() {
+            super("bilibili.community.service.dm.v1.DmViewReply", [
+                { no: 18, name: "activity_meta", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+                { no: 22, name: "command", kind: "message", T: () => Command }
+            ]);
+        }
+        create(value) {
+            const message = globalThis.Object.create((this.messagePrototype));
+            message.activityMeta = [];
+            if (value !== undefined)
+                reflectionMergePartial(this, message, value);
+            return message;
+        }
+        internalBinaryRead(reader, length, options, target) {
+            let message = target ?? this.create(), end = reader.pos + length;
+            while (reader.pos < end) {
+                let [fieldNo, wireType] = reader.tag();
+                switch (fieldNo) {
+                    case /* repeated string activity_meta */ 18:
+                        message.activityMeta.push(reader.string());
+                        break;
+                    case /* bilibili.community.service.dm.v1.Command command */ 22:
+                        message.command = Command.internalBinaryRead(reader, reader.uint32(), options, message.command);
+                        break;
+                    default:
+                        let u = options.readUnknownField;
+                        if (u === "throw")
+                            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                        let d = reader.skip(wireType);
+                        if (u !== false)
+                            (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+                }
+            }
+            return message;
+        }
+        internalBinaryWrite(message, writer, options) {
+            /* repeated string activity_meta = 18; */
+            for (let i = 0; i < message.activityMeta.length; i++)
+                writer.tag(18, WireType.LengthDelimited).string(message.activityMeta[i]);
+            /* bilibili.community.service.dm.v1.Command command = 22; */
+            if (message.command)
+                Command.internalBinaryWrite(message.command, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
+            let u = options.writeUnknownFields;
+            if (u !== false)
+                (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+            return writer;
+        }
+    }
+    /**
+     * @generated MessageType for protobuf message bilibili.community.service.dm.v1.DmViewReply
+     */
+    new DmViewReply$Type();
+    // @generated message type with reflection information, may provide speed optimized methods
+    class Command$Type extends MessageType {
+        constructor() {
+            super("bilibili.community.service.dm.v1.Command", [
+                { no: 1, name: "command_dms", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 12 /*ScalarType.BYTES*/ }
+            ]);
+        }
+        create(value) {
+            const message = globalThis.Object.create((this.messagePrototype));
+            message.commandDms = [];
+            if (value !== undefined)
+                reflectionMergePartial(this, message, value);
+            return message;
+        }
+        internalBinaryRead(reader, length, options, target) {
+            let message = target ?? this.create(), end = reader.pos + length;
+            while (reader.pos < end) {
+                let [fieldNo, wireType] = reader.tag();
+                switch (fieldNo) {
+                    case /* repeated bytes command_dms */ 1:
+                        message.commandDms.push(reader.bytes());
+                        break;
+                    default:
+                        let u = options.readUnknownField;
+                        if (u === "throw")
+                            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                        let d = reader.skip(wireType);
+                        if (u !== false)
+                            (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+                }
+            }
+            return message;
+        }
+        internalBinaryWrite(message, writer, options) {
+            /* repeated bytes command_dms = 1; */
+            for (let i = 0; i < message.commandDms.length; i++)
+                writer.tag(1, WireType.LengthDelimited).bytes(message.commandDms[i]);
+            let u = options.writeUnknownFields;
+            if (u !== false)
+                (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+            return writer;
+        }
+    }
+    /**
+     * @generated MessageType for protobuf message bilibili.community.service.dm.v1.Command
+     */
+    const Command = new Command$Type();
+    // @generated message type with reflection information, may provide speed optimized methods
+    class DmSegMobileReq$Type extends MessageType {
+        constructor() {
+            super("bilibili.community.service.dm.v1.DmSegMobileReq", [
+                { no: 1, name: "pid", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+                { no: 2, name: "oid", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            ]);
+        }
+        create(value) {
+            const message = globalThis.Object.create((this.messagePrototype));
+            message.pid = "0";
+            message.oid = "0";
+            if (value !== undefined)
+                reflectionMergePartial(this, message, value);
+            return message;
+        }
+        internalBinaryRead(reader, length, options, target) {
+            let message = target ?? this.create(), end = reader.pos + length;
+            while (reader.pos < end) {
+                let [fieldNo, wireType] = reader.tag();
+                switch (fieldNo) {
+                    case /* int64 pid */ 1:
+                        message.pid = reader.int64().toString();
+                        break;
+                    case /* int64 oid */ 2:
+                        message.oid = reader.int64().toString();
+                        break;
+                    default:
+                        let u = options.readUnknownField;
+                        if (u === "throw")
+                            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                        let d = reader.skip(wireType);
+                        if (u !== false)
+                            (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+                }
+            }
+            return message;
+        }
+        internalBinaryWrite(message, writer, options) {
+            /* int64 pid = 1; */
+            if (message.pid !== "0")
+                writer.tag(1, WireType.Varint).int64(message.pid);
+            /* int64 oid = 2; */
+            if (message.oid !== "0")
+                writer.tag(2, WireType.Varint).int64(message.oid);
+            let u = options.writeUnknownFields;
+            if (u !== false)
+                (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+            return writer;
+        }
+    }
+    /**
+     * @generated MessageType for protobuf message bilibili.community.service.dm.v1.DmSegMobileReq
+     */
+    const DmSegMobileReq = new DmSegMobileReq$Type();
+    // @generated message type with reflection information, may provide speed optimized methods
+    class DmSegMobileReply$Type extends MessageType {
+        constructor() {
+            super("bilibili.community.service.dm.v1.DmSegMobileReply", [
+                { no: 1, name: "elems", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DanmakuElem }
+            ]);
+        }
+        create(value) {
+            const message = globalThis.Object.create((this.messagePrototype));
+            message.elems = [];
+            if (value !== undefined)
+                reflectionMergePartial(this, message, value);
+            return message;
+        }
+        internalBinaryRead(reader, length, options, target) {
+            let message = target ?? this.create(), end = reader.pos + length;
+            while (reader.pos < end) {
+                let [fieldNo, wireType] = reader.tag();
+                switch (fieldNo) {
+                    case /* repeated bilibili.community.service.dm.v1.DanmakuElem elems */ 1:
+                        message.elems.push(DanmakuElem.internalBinaryRead(reader, reader.uint32(), options));
+                        break;
+                    default:
+                        let u = options.readUnknownField;
+                        if (u === "throw")
+                            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                        let d = reader.skip(wireType);
+                        if (u !== false)
+                            (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+                }
+            }
+            return message;
+        }
+        internalBinaryWrite(message, writer, options) {
+            /* repeated bilibili.community.service.dm.v1.DanmakuElem elems = 1; */
+            for (let i = 0; i < message.elems.length; i++)
+                DanmakuElem.internalBinaryWrite(message.elems[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            let u = options.writeUnknownFields;
+            if (u !== false)
+                (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+            return writer;
+        }
+    }
+    /**
+     * @generated MessageType for protobuf message bilibili.community.service.dm.v1.DmSegMobileReply
+     */
+    const DmSegMobileReply = new DmSegMobileReply$Type();
+    // @generated message type with reflection information, may provide speed optimized methods
+    class DanmakuElem$Type extends MessageType {
+        constructor() {
+            super("bilibili.community.service.dm.v1.DanmakuElem", [
+                { no: 1, name: "id", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+                { no: 2, name: "progress", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 3, name: "mode", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 4, name: "fontsize", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 5, name: "color", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 6, name: "mid_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 7, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 8, name: "ctime", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+                { no: 9, name: "weight", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 10, name: "action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 11, name: "pool", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 12, name: "id_str", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 13, name: "attr", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 22, name: "animation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 23, name: "extra", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+                { no: 24, name: "colorful", kind: "enum", T: () => ["bilibili.community.service.dm.v1.DmColorfulType", DmColorfulType] },
+                { no: 25, name: "type", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+                { no: 26, name: "oid", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+                { no: 27, name: "dm_from", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            ]);
+        }
+        create(value) {
+            const message = globalThis.Object.create((this.messagePrototype));
+            message.id = "0";
+            message.progress = 0;
+            message.mode = 0;
+            message.fontsize = 0;
+            message.color = 0;
+            message.midHash = "";
+            message.content = "";
+            message.ctime = "0";
+            message.weight = 0;
+            message.action = "";
+            message.pool = 0;
+            message.idStr = "";
+            message.attr = 0;
+            message.animation = "";
+            message.extra = "";
+            message.colorful = 0;
+            message.type = 0;
+            message.oid = "0";
+            message.dmFrom = 0;
+            if (value !== undefined)
+                reflectionMergePartial(this, message, value);
+            return message;
+        }
+        internalBinaryRead(reader, length, options, target) {
+            let message = target ?? this.create(), end = reader.pos + length;
+            while (reader.pos < end) {
+                let [fieldNo, wireType] = reader.tag();
+                switch (fieldNo) {
+                    case /* int64 id */ 1:
+                        message.id = reader.int64().toString();
+                        break;
+                    case /* int32 progress */ 2:
+                        message.progress = reader.int32();
+                        break;
+                    case /* int32 mode */ 3:
+                        message.mode = reader.int32();
+                        break;
+                    case /* int32 fontsize */ 4:
+                        message.fontsize = reader.int32();
+                        break;
+                    case /* int32 color */ 5:
+                        message.color = reader.int32();
+                        break;
+                    case /* string mid_hash */ 6:
+                        message.midHash = reader.string();
+                        break;
+                    case /* string content */ 7:
+                        message.content = reader.string();
+                        break;
+                    case /* int64 ctime */ 8:
+                        message.ctime = reader.int64().toString();
+                        break;
+                    case /* int32 weight */ 9:
+                        message.weight = reader.int32();
+                        break;
+                    case /* string action */ 10:
+                        message.action = reader.string();
+                        break;
+                    case /* int32 pool */ 11:
+                        message.pool = reader.int32();
+                        break;
+                    case /* string id_str */ 12:
+                        message.idStr = reader.string();
+                        break;
+                    case /* int32 attr */ 13:
+                        message.attr = reader.int32();
+                        break;
+                    case /* string animation */ 22:
+                        message.animation = reader.string();
+                        break;
+                    case /* string extra */ 23:
+                        message.extra = reader.string();
+                        break;
+                    case /* bilibili.community.service.dm.v1.DmColorfulType colorful */ 24:
+                        message.colorful = reader.int32();
+                        break;
+                    case /* int32 type */ 25:
+                        message.type = reader.int32();
+                        break;
+                    case /* int64 oid */ 26:
+                        message.oid = reader.int64().toString();
+                        break;
+                    case /* int32 dm_from */ 27:
+                        message.dmFrom = reader.int32();
+                        break;
+                    default:
+                        let u = options.readUnknownField;
+                        if (u === "throw")
+                            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                        let d = reader.skip(wireType);
+                        if (u !== false)
+                            (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+                }
+            }
+            return message;
+        }
+        internalBinaryWrite(message, writer, options) {
+            /* int64 id = 1; */
+            if (message.id !== "0")
+                writer.tag(1, WireType.Varint).int64(message.id);
+            /* int32 progress = 2; */
+            if (message.progress !== 0)
+                writer.tag(2, WireType.Varint).int32(message.progress);
+            /* int32 mode = 3; */
+            if (message.mode !== 0)
+                writer.tag(3, WireType.Varint).int32(message.mode);
+            /* int32 fontsize = 4; */
+            if (message.fontsize !== 0)
+                writer.tag(4, WireType.Varint).int32(message.fontsize);
+            /* int32 color = 5; */
+            if (message.color !== 0)
+                writer.tag(5, WireType.Varint).int32(message.color);
+            /* string mid_hash = 6; */
+            if (message.midHash !== "")
+                writer.tag(6, WireType.LengthDelimited).string(message.midHash);
+            /* string content = 7; */
+            if (message.content !== "")
+                writer.tag(7, WireType.LengthDelimited).string(message.content);
+            /* int64 ctime = 8; */
+            if (message.ctime !== "0")
+                writer.tag(8, WireType.Varint).int64(message.ctime);
+            /* int32 weight = 9; */
+            if (message.weight !== 0)
+                writer.tag(9, WireType.Varint).int32(message.weight);
+            /* string action = 10; */
+            if (message.action !== "")
+                writer.tag(10, WireType.LengthDelimited).string(message.action);
+            /* int32 pool = 11; */
+            if (message.pool !== 0)
+                writer.tag(11, WireType.Varint).int32(message.pool);
+            /* string id_str = 12; */
+            if (message.idStr !== "")
+                writer.tag(12, WireType.LengthDelimited).string(message.idStr);
+            /* int32 attr = 13; */
+            if (message.attr !== 0)
+                writer.tag(13, WireType.Varint).int32(message.attr);
+            /* string animation = 22; */
+            if (message.animation !== "")
+                writer.tag(22, WireType.LengthDelimited).string(message.animation);
+            /* string extra = 23; */
+            if (message.extra !== "")
+                writer.tag(23, WireType.LengthDelimited).string(message.extra);
+            /* bilibili.community.service.dm.v1.DmColorfulType colorful = 24; */
+            if (message.colorful !== 0)
+                writer.tag(24, WireType.Varint).int32(message.colorful);
+            /* int32 type = 25; */
+            if (message.type !== 0)
+                writer.tag(25, WireType.Varint).int32(message.type);
+            /* int64 oid = 26; */
+            if (message.oid !== "0")
+                writer.tag(26, WireType.Varint).int64(message.oid);
+            /* int32 dm_from = 27; */
+            if (message.dmFrom !== 0)
+                writer.tag(27, WireType.Varint).int32(message.dmFrom);
+            let u = options.writeUnknownFields;
+            if (u !== false)
+                (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+            return writer;
+        }
+    }
+    /**
+     * @generated MessageType for protobuf message bilibili.community.service.dm.v1.DanmakuElem
+     */
+    const DanmakuElem = new DanmakuElem$Type();
+
     const url = $request.url;
+    const device = globalThis.$environment?.['device-model'] || globalThis.$loon;
+    const isIpad = device?.includes('iPad');
     if (url.endsWith('/PlayViewUnite')) {
         handlePlayViewUniteReq($request);
+    }
+    else if (url.endsWith('/DmSegMobile') && isIpad) {
+        handleDmSegMobileReq($request);
     }
     else {
         $done({});
@@ -4469,6 +4883,25 @@
         Promise.all([fetchOriginalRequest(url, headers, body), fetchBilijumpData(cid !== '0' ? cid : '')])
             .then(([{ headers, body }, segments]) => {
             $done({ response: { headers, body: newRawBody(handlePlayViewUniteReply(body, segments, cid)) } });
+        })
+            .catch(err => {
+            console.log(err?.toString());
+            $done({});
+        });
+    }
+    function handleDmSegMobileReq({ url, headers, body }) {
+        const binaryBody = getBinaryBody(body);
+        const message = DmSegMobileReq.fromBinary(binaryBody);
+        const { pid, oid } = message;
+        Promise.all([fetchOriginalRequest(url, headers, body), fetchBilijumpData(oid !== '0' ? oid : '')])
+            .then(([{ headers, body }, segments]) => {
+            if (segments.length) {
+                console.log(`${oid}: ${JSON.stringify(segments)}`);
+                $done({ response: { headers, body: newRawBody(handleDmSegMobileReply(body, segments)) } });
+            }
+            else {
+                $done({ response: { headers, body } });
+            }
         })
             .catch(err => {
             console.log(err?.toString());
@@ -4530,7 +4963,6 @@
         const emptyBytes = new Uint8Array(0);
         const binaryBody = getBinaryBody(body);
         const message = PlayViewUniteReply.fromBinary(binaryBody);
-        console.log(JSON.stringify(message));
         if (message.viewInfo) {
             message.viewInfo.promptBar = emptyBytes;
         }
@@ -4543,7 +4975,7 @@
                 }
             });
         }
-        if (segments?.length) {
+        if (segments.length) {
             console.log(`${cid}: ${JSON.stringify(segments)}`);
             const arcConfs = message.playArcConf?.arcConfs || {};
             [ConfType.SKIPOPED].forEach(i => {
@@ -4573,7 +5005,6 @@
                 value: PGCAnyModel.toBinary(getPGCAnyModel(segments)),
             };
         }
-        console.log(JSON.stringify(message));
         return PlayViewUniteReply.toBinary(message);
     }
     function getPGCAnyModel(segments) {
@@ -4615,8 +5046,40 @@
             clipType: ClipType.CLIP_TYPE_OP,
         }));
     }
-    // Removed function handleDmSegMobileReply as it was not called
-    // Removed function getAirBorneDms as it was only called by handleDmSegMobileReply
+    function handleDmSegMobileReply(body, segments) {
+        const binaryBody = getBinaryBody(body);
+        const message = DmSegMobileReply.fromBinary(binaryBody);
+        message.elems.unshift(...getAirBorneDms(segments));
+        return DmSegMobileReply.toBinary(message);
+    }
+    function getAirBorneDms(segments) {
+        return segments.map((segment, index) => {
+            const id = (index + 1).toString();
+            const start = Math.max(Math.floor(segment[0] * 1000 - 2000), 1);
+            const end = Math.floor(segment[1] * 1000);
+            return {
+                id,
+                progress: start,
+                mode: 5,
+                fontsize: 50,
+                color: 16777215,
+                midHash: '1948dd5d',
+                content: '点击跳过广告',
+                ctime: '1735660800',
+                weight: 11,
+                action: `airborne:${end}`,
+                pool: 0,
+                idStr: id,
+                attr: 1310724,
+                animation: '',
+                extra: '',
+                colorful: DmColorfulType.NONE_TYPE,
+                type: 1,
+                oid: '212364987',
+                dmFrom: 1,
+            };
+        });
+    }
     function getBinaryBody(body) {
         const header = body.slice(0, 5);
         let binaryBody = body.slice(5);
