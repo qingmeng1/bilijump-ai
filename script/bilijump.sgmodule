@@ -1,7 +1,6 @@
 #!name=Bilibili AI Skip
 #!desc=使用 AI 跳过 Bilibili 视频植入广告。
 #!category=Enhancement
-#!arguments=广告助手:bilijump-surge,广告助手弹幕版:bilijump-surge-dm
 
 [Rule]
 DOMAIN,api.biliapi.com,REJECT,pre-matching
@@ -10,8 +9,8 @@ DOMAIN,api.biliapi.net,REJECT,pre-matching
 DOMAIN,app.biliapi.net,REJECT,pre-matching
 
 [Script]
-{{{广告助手}}} = type=http-request,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.playerunite\.v1\.Player\/PlayViewUnite$,requires-body=1,binary-body-mode=1,max-size=-1,engine=webview,script-path=https://raw.githubusercontent.com/qingmeng1/bilijump-ai/refs/heads/main/script/bilijump-surge.bundle.js
-{{{广告助手弹幕版}}} = type=http-request,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$,requires-body=1,binary-body-mode=1,max-size=-1,engine=webview,script-path=https://raw.githubusercontent.com/qingmeng1/bilijump-ai/refs/heads/main/script/bilijump-surge.bundle.js
+bilijump-surge = type=http-request,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.playerunite\.v1\.Player\/PlayViewUnite$,requires-body=1,binary-body-mode=1,max-size=-1,engine=webview,script-path=https://raw.githubusercontent.com/qingmeng1/bilijump-ai/refs/heads/main/script/bilijump-surge.bundle.js
+bilijump-surge-dm = type=http-request,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$,requires-body=1,binary-body-mode=1,max-size=-1,engine=webview,script-path=https://raw.githubusercontent.com/qingmeng1/bilijump-ai/refs/heads/main/script/bilijump-surge.bundle.js
 
 [MITM]
 hostname = %APPEND% grpc.biliapi.net, app.bilibili.com, api.bilibili.com, api.live.bilibili.com

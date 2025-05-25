@@ -4895,7 +4895,7 @@
         const { pid, oid } = message;
         Promise.all([fetchOriginalRequest(url, headers, body), fetchBilijumpData(oid !== '0' ? oid : '')])
             .then(([{ headers, body }, segments]) => {
-            if (segments.length) {
+            if (segments?.length) {
                 console.log(`${oid}: ${JSON.stringify(segments)}`);
                 $done({ response: { headers, body: newRawBody(handleDmSegMobileReply(body, segments)) } });
             }
@@ -4966,7 +4966,7 @@
         if (message.viewInfo) {
             message.viewInfo.promptBar = emptyBytes;
         }
-        if (!segments.length && message.playArcConf?.arcConfs) {
+        if (!segments?.length && message.playArcConf?.arcConfs) {
             Object.values(message.playArcConf.arcConfs).forEach(item => {
                 if (item.isSupport && item.disabled) {
                     item.disabled = false;
@@ -4975,7 +4975,7 @@
                 }
             });
         }
-        if (segments.length) {
+        if (segments?.length) {
             console.log(`${cid}: ${JSON.stringify(segments)}`);
             const arcConfs = message.playArcConf?.arcConfs || {};
             [ConfType.SKIPOPED].forEach(i => {
