@@ -4865,14 +4865,14 @@
 
     const url = $request.url;
     const device = globalThis.$environment?.['device-model'] || globalThis.$loon;
-    //const isIpad = device?.includes('iPad');
+    const isIpad = device?.includes('iPad');
     if (url.endsWith('/PlayViewUnite')) {
         handlePlayViewUniteReq($request);
-    }
-    else if (url.endsWith('/DmSegMobile')/* && isIpad */) {
+    } else if (url.endsWith('/PlayView') && isIpad) {
+        handlePlayViewUniteReq($request);
+    } else if (url.endsWith('/DmSegMobile') && isIpad) {
         handleDmSegMobileReq($request);
-    }
-    else {
+    } else {
         $done({});
     }
     function handlePlayViewUniteReq({ url, headers, body }) {
