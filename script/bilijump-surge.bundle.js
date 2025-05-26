@@ -1,4 +1,4 @@
-(function () {
+(async function () {
     'use strict';
 
     /**
@@ -4867,8 +4867,7 @@
     const device = globalThis.$environment?.['device-model'] || globalThis.$loon;
     const isIpad = device?.includes('iPad');
     if (url.endsWith('/PlayViewUnite')) {
-        handlePlayViewUniteReq($request);
-    } else if (url.endsWith('/PlayView') && isIpad) {
+        await new Promise(resolve => setTimeout(resolve, ms));
         handlePlayViewUniteReq($request);
     } else if (url.endsWith('/DmSegMobile') && isIpad) {
         handleDmSegMobileReq($request);
