@@ -4996,10 +4996,10 @@
                 message.vodInfo.streamList.forEach(item => {
                     delete item.streamInfo?.needVip;
                 });
-            }
+            }*/
             if (message.playArc) {
                 message.playArc.videoType = BizType.PGC;
-            }*/
+            }
             message.supplement = {
                 typeUrl: 'type.googleapis.com/bilibili.app.playerunite.pgcanymodel.PGCAnyModel',
                 value: PGCAnyModel.toBinary(getPGCAnyModel(segments)),
