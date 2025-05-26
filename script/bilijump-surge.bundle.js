@@ -4867,7 +4867,7 @@
     const device = globalThis.$environment?.['device-model'] || globalThis.$loon;
     const isIpad = device?.includes('iPad');
     if (url.endsWith('/PlayViewUnite')) {
-        await new Promise(resolve => setTimeout(resolve, ms));
+        await new Promise(resolve => setTimeout(resolve, 30000));
         handlePlayViewUniteReq($request);
     } else if (url.endsWith('/DmSegMobile') && isIpad) {
         handleDmSegMobileReq($request);
