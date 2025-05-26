@@ -5062,7 +5062,7 @@
                 progress: start,
                 mode: 5,
                 fontsize: 50,
-                color: 16777215,
+                color: 16711680,
                 midHash: '1948dd5d',
                 content: '点击跳过广告',
                 ctime: '1735660800',
