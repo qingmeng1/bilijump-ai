@@ -4985,13 +4985,13 @@
                     unsupportScene: [],
                 };
             });
-            [ConfType.FREYAENTER, ConfType.FREYAFULLENTER].forEach(i => {
+            /*[ConfType.FREYAENTER, ConfType.FREYAFULLENTER].forEach(i => {
                 arcConfs[i] = {
                     isSupport: false,
                     disabled: true,
                     unsupportScene: [],
                 };
-            });
+            });*/
             if (message.vodInfo) {
                 message.vodInfo.streamList.forEach(item => {
                     delete item.streamInfo?.needVip;
