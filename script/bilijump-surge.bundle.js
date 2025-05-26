@@ -4966,7 +4966,7 @@
         if (message.viewInfo) {
             message.viewInfo.promptBar = emptyBytes;
         }
-        if (!segments?.length && message.playArcConf?.arcConfs) {
+        /*if (!segments?.length && message.playArcConf?.arcConfs) {
             Object.values(message.playArcConf.arcConfs).forEach(item => {
                 if (item.isSupport && item.disabled) {
                     item.disabled = false;
@@ -4974,7 +4974,7 @@
                     item.unsupportScene.length = 0;
                 }
             });
-        }
+        }*/
         if (segments?.length) {
             console.log(`${cid}: ${JSON.stringify(segments)}`);
             const arcConfs = message.playArcConf?.arcConfs || {};
@@ -4991,7 +4991,7 @@
                     disabled: true,
                     unsupportScene: [],
                 };
-            });*/
+            });
             if (message.vodInfo) {
                 message.vodInfo.streamList.forEach(item => {
                     delete item.streamInfo?.needVip;
@@ -4999,7 +4999,7 @@
             }
             if (message.playArc) {
                 message.playArc.videoType = BizType.PGC;
-            }
+            }*/
             message.supplement = {
                 typeUrl: 'type.googleapis.com/bilibili.app.playerunite.pgcanymodel.PGCAnyModel',
                 value: PGCAnyModel.toBinary(getPGCAnyModel(segments)),
