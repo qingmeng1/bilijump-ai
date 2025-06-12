@@ -19,14 +19,14 @@
 
 ## 项目简介
 
-**Bilibili AI Skip** 是一个 Chrome 扩展程序，旨在通过 AI 技术识别并自动跳过 Bilibili 视频中植入的广告。它支持字幕和音频分析，能够精准定位广告的开始和结束时间，并提供手动或自动跳过广告的功能。用户可以通过设置 API 密钥和模型来自定义 AI 分析行为。
+**Bilibili AI Skip** 是一个 Chrome 扩展程序，旨在通过 AI 识别并自动跳过 Bilibili 视频中植入的广告。它支持字幕和音频分析，能够精准定位广告的开始和结束时间，并提供手动或自动跳过广告的功能。用户可以通过设置 API 密钥和模型来自定义 AI 分析行为。
 
 [![Visit Official Website](https://img.shields.io/badge/Official%20Website-Visit%20Now-8E44AD?style=plastic&logo=globe&logoColor=white&labelColor=00CED1)](https://oooo.uno)
 [![Get it on Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Get%20Now-1E90FF?style=plastic&logo=google-chrome&logoColor=white&labelColor=FF69B4)](https://chromewebstore.google.com/detail/lkhedimikicklpjmldabifgkhchnjjan)
   
   
 ## 新增脚本 [script](script/)
-* **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，使用番剧的跳过 OPED 功能；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
+* **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，ios 端使用番剧的跳过 OPED 功能，ipad 端使用弹幕功能，点击弹幕跳过；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
   
 ## v2.3.10 版本更新
 * **增加 UP主/标签 过滤**： 设置页面中设置需要过滤的UP主或标签，匹配规则的视频则不进行广告识别。
