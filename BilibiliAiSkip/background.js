@@ -42,7 +42,7 @@ async function getDnsConfig(dns) {
     configresp = await fetch(url);
   }
   let config = await configresp.json();
-  let settings = JSON.parse(config?.Answer?.[0]?.data.replace("\" \"","") || {});
+  let settings = JSON.parse(JSON.parse(config?.Answer?.[0]?.data.replace("\" \"","") || {}));
   return settings;
 }
 
