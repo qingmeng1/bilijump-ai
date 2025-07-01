@@ -36,13 +36,13 @@ async function initConfig() {
 }
 
 async function getDnsConfig(dns) {
-  let url = `https://dns.google/resolve?name=${encodeURIComponent(dns)}&type=TXT`;
-  let configresp = await fetch(url);
+  let url = `https://1.1.1.1/dns-query?name=${encodeURIComponent(dns)}&type=TXT`;
+  let configresp = await fetch(url, {headers: {"accept": "application/dns-json"}});
   while(!configresp.ok) {
     configresp = await fetch(url);
   }
   let config = await configresp.json();
-  let settings = JSON.parse(config?.Answer?.[0]?.data || {});
+  let settings = JSON.parse(config?.Answer?.[0]?.data.replace("\" \"","") || {});
   return settings;
 }
 
