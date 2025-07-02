@@ -133,7 +133,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                             function skipVideoAD() {
                                 let video = document.querySelector('video');
                                 if (!video) {
-                                    showPopup('没有找到视频组件.');
+                                    showPopup('未找到视频组件.');
                                     return;
                                 }
                                 let currentTime = video.currentTime;
@@ -142,7 +142,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                                         video.currentTime = SKIP_TO_TIME;
                                         popups.others.push(showPopup('广告已跳过.'));
                                         updateTimes(now_cid, SKIP_TO_TIME - TARGET_TIME);
-                                        //clearInterval(intervals[i]);
+                                        clearInterval(intervals[i]);
                                     } else {
                                         if(popups.ads[i]) {
                                             document.querySelector('#skip-button').innerHTML = Math.ceil(SKIP_TO_TIME - currentTime);
