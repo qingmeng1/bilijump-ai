@@ -8,8 +8,11 @@
 > 4.推荐使用手动控制语音解析，防止浪费免费额度  
 > 5.推荐使用 **Gemini / grok / gpt-4.1** 质量相对其他会好很多（**gemini-2.5-flash** 便宜又好用）
 
+
+<img width="1800" height="262" alt="image" src="https://github.com/user-attachments/assets/352eb07b-1cbc-43a5-b92b-006f4c68d451"/>  
+
 ```diff
-+ 即将停止提供免费 api，建议自行注册第三方服务商进行使用  2025-07-14
++ 即将停止提供免费 api，提供不起了，建议自行注册第三方服务商进行使用  2025-07-14
 - 尽量用我提供的 api，不知道为什么 deepseek 生成的质量很差
 ```
 
