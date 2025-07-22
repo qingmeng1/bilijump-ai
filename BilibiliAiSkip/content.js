@@ -47,7 +47,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                     const author = document.querySelector('meta[name="author"]')?.getAttribute('content');
                     const tags = Array.from(tagElements).map(element => element.innerHTML.toLowerCase());
                     if (author) tags.push(author);
-                    if (filterTags.some(tag => tags.includes(tag))) {
+                    if (filterTags.some(tag => tags.some(pageTag => pageTag.includes(tag)))) {
                         popups.others.push(showPopup(`过滤列表，跳过`));
                         return;
                     }
