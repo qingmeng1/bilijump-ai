@@ -12,7 +12,8 @@
 <img width="1800" height="262" alt="image" src="https://github.com/user-attachments/assets/352eb07b-1cbc-43a5-b92b-006f4c68d451"/>  
 
 ```diff
-+ 即将停止提供免费 api，提供不起了，建议自行注册第三方服务商进行使用  2025-07-14
++ 已停止提供，请自行注册api进行使用  2025-08-02
+- 即将停止提供免费 api，提供不起了，建议自行注册第三方服务商进行使用  2025-07-14
 - 尽量用我提供的 api，不知道为什么 deepseek 生成的质量很差
 ```
 
