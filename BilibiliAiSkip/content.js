@@ -90,6 +90,7 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                         }
                         for (var p = 0; p < curr_progress.length; p++) {
                             curr_progress[p].style.backgroundColor = '#13c58ae6';
+                            curr_progress[p].style.zIndex = '99';
                         }
                     });
 
@@ -476,6 +477,7 @@ async function callOpenAI(subtitle) {
     const storageData = await chrome.storage.sync.get('prompt');
     const requestData = {
         model: settings.apiModel,
+        max_tokens: 8192,
         messages: [ {role: "system", content: storageData.prompt},
                     {role: "user", content: subtitle}]};
 
@@ -637,6 +639,7 @@ function showCorrectionPopup(cid, currentAdsData) {
     const existingPopup = document.getElementById('bilibili-ai-skip-correction-popup');
     if (existingPopup) {
         closePopup(existingPopup);
+        return;
     }
 
     const cancelTimeSelectionMode = () => {
