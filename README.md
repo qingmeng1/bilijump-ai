@@ -22,10 +22,14 @@
 
 [![Visit Official Website](https://img.shields.io/badge/Official%20Website-Visit%20Now-8E44AD?style=plastic&logo=globe&logoColor=white&labelColor=00CED1)](https://oooo.uno)
 [![Get it on Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Get%20Now-1E90FF?style=plastic&logo=google-chrome&logoColor=white&labelColor=FF69B4)](https://chromewebstore.google.com/detail/lkhedimikicklpjmldabifgkhchnjjan)
+[![Get it on Firefox Web Store](https://img.shields.io/badge/Firefox%20Web%20Store-Get%20Now-1E90FF?style=plastic&logo=firefox&logoColor=white&labelColor=FF9500)](https://addons.mozilla.org/zh-CN/firefox/addon/bilibili-ai-skip)
   
   
 ## 新增脚本 [script](script/)
 * **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，ios 端使用番剧的跳过 OPED 功能，ipad 端使用弹幕功能，点击弹幕跳过；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
+
+## v2.3.20 版本更新
+* **修复 bug**：  修复 bug，上架 Firefox 商店。
   
 ## v2.3.10 版本更新
 * **增加 UP主/标签 过滤**： 设置页面中设置需要过滤的UP主或标签，匹配规则的视频则不进行广告识别。
