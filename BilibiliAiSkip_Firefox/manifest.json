@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Bilibili AI Skip",
+  "version": "2.3.20",
+  "description": "一个使用 AI 自动跳过 Bilibili 视频植入广告的 Chrome 扩展程序。",
+  "host_permissions": [
+    "*://dashscope.aliyuncs.com/*",
+    "*://api.cloudflare.com/*",
+    "*://api.bilibili.com/*",
+    "https://dns.google/",
+    "https://1.1.1.1/"
+  ],
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.bilibili.com/video/*",
+        "*://*.bilibili.com/list/watchlater*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon48_red_3.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/icon48*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "homepage_url": "https://oooo.uno",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bilibili-ai-skip@oooo.uno"
+    }
+  }
+}
