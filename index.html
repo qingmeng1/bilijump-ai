@@ -65,10 +65,12 @@
 
         body.light-theme .btn {
             background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            right: 15px;
         }
 
         body.light-theme .firefox {
             background: linear-gradient(135deg, #F7D15D, #E74553);
+            left: 15px;
         }
         
         body.light-theme section h2 {
@@ -369,7 +371,7 @@
         <h1>Bilibili AI Skip</h1>
         <p>使用 AI 技术智能跳过 Bilibili 视频广告，提升你的观看体验</p>
         <a href="#" class="btn" id="chrome-store-btn">前往 Chrome 应用商店</a>
-        <a href="#" class="firefox" id="firefox-store-btn">前往 Firefox 应用商店</a>
+        <a href="#" class="btn firefox" id="firefox-store-btn">前往 Firefox 应用商店</a>
     </header>
 
     <div class="container">
@@ -474,6 +476,7 @@
             const chromeStoreUrl = 'https://chromewebstore.google.com/detail/bilibili-ai-skip/lkhedimikicklpjmldabifgkhchnjjan';
             window.open(chromeStoreUrl, '_blank');
         });
+        
         document.getElementById('firefox-store-btn').addEventListener('click', (e) => {
             e.preventDefault();
             const chromeStoreUrl = 'https://addons.mozilla.org/zh-CN/firefox/addon/bilibili-ai-skip';
