@@ -110,7 +110,6 @@
             left: 15px;
         }
 
-
         body.pink-blue-theme section h2 {
             color: #a3bffa;
         }
@@ -276,6 +275,67 @@
             text-decoration: underline;
         }
 
+        .chrome-dynamic-border {
+            background: #ffffff !important; 
+            color: #4285F4 !important;
+            border: 1px solid #dadce0;
+            
+            position: relative;
+            z-index: 2; 
+            overflow: hidden;
+        }
+        
+        .chrome-dynamic-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            
+            background: conic-gradient(
+                #EA4335 0% 25%,
+                #FBBC05 25% 50%,
+                #34A853 50% 75%,
+                #4285F4 75% 100%
+            );
+            
+            z-index: -1;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.8s linear;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .chrome-dynamic-border::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
+            border-radius: inherit;
+            z-index: 0;
+            transition: background-color 0.3s ease;
+        }
+        
+        .chrome-dynamic-border:hover::before {
+            opacity: 1;
+            transform: rotate(360deg);
+        }
+        
+        .chrome-dynamic-border:hover {
+            color: #1a73e8 !important;
+            border-color: transparent;
+        }
+        
+        .chrome-dynamic-border span {
+            position: relative;
+            z-index: 2;
+        }
+
         @media (max-width: 768px) {
             header {
                 padding: 30px 10px;
@@ -377,7 +437,7 @@
     <header>
         <h1>Bilibili AI Skip</h1>
         <p>使用 AI 技术智能跳过 Bilibili 视频广告，提升你的观看体验</p>
-        <a href="#" class="btn" id="chrome-store-btn">前往 Chrome 应用商店</a>
+        <a href="#" class="btn chrome-dynamic-border" id="chrome-store-btn">前往 Chrome 应用商店</a>
         <a href="#" class="btn firefox" id="firefox-store-btn">前往 Firefox 应用商店</a>
     </header>
 
