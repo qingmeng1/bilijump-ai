@@ -312,11 +312,11 @@ async function adRecognition(bvid,pvid) {
                 }
             });
         });
-
-        if(dbResults) {
+        let tempAds = JSON.parse(dbResults?.data || "{}");
+        if(dbResults?.data && tempAds?.ads && tempAds?.msg) {
             popups.others.push(showPopup(`使用云端数据, 模型: ${dbResults?.model}.`));
-            correctButton(cid, JSON.parse(dbResults?.data));
-            return JSON.parse(dbResults?.data);
+            correctButton(cid, tempAds);
+            return tempAds;
         }
 
         for(const key of ["apiKey", "apiURL", "apiModel"]) {
@@ -424,30 +424,37 @@ async function adRecognition(bvid,pvid) {
         popups.ai = showPopup("AI 分析中...",1);
         popups.others.push(popups.ai);
 
-        let data = await callOpenAI(subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
-        for(let i = 1; i < 3 && !aiResponse; i++) {
-            showPopup('Re-fetch AI.');
-            aiResponse = await callOpenAI(subtitle);
-        }
-        closePopup(popups.ai);
+        let data , aiResponse , total_tokens, resultAD;
+        for(let i = 0; i < 3 && (!resultAD?.ads || !resultAD?.msg); i++) {
+            data = await callOpenAI(subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
 
+            if (!aiResponse) {
+                showPopup("AI 解析失败.");
+                showPopup('Re-fetch AI.');
+                continue;
+            }
 
-        if (!aiResponse) {
-            return {ads:[], msg:"AI 解析失败."};
-        }
-
-        const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
-        let resultAD;
-        if (jsonMatch && jsonMatch[1]) {
-            const jsonContent = jsonMatch[1].trim();
-            resultAD = JSON.parse(jsonContent);
-        }else {
-            try {
-                resultAD = JSON.parse(aiResponse);
-            } catch (error) {
-                return {ads:[], msg:"AI 分析结果获取失败. " + error};
+            const jsonMatch = aiResponse.match(/```json([\s\S]*?)```/);
+            if (jsonMatch && jsonMatch[1]) {
+                const jsonContent = jsonMatch[1].trim();
+                resultAD = JSON.parse(jsonContent);
+            }else {
+                try {
+                    resultAD = JSON.parse(aiResponse);
+                } catch (error) {
+                    styleLog(`CID: ${cid}, error: ${error}, resp: ${aiResponse}`);
+                    showPopup("AI 分析结果获取失败. ");
+                    showPopup("AI 解析失败.");
+                    continue;
+                }
             }
         }
+        closePopup(popups.ai);
+       
+        if (!resultAD || !resultAD?.ads || !resultAD?.msg) {
+            return {ads:[], msg:"对象结构解析失败."};
+        }
+
         styleLog(`CID: ${cid}, data: ${JSON.stringify(resultAD)}`);
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
@@ -577,7 +584,7 @@ async function checkPopup() {
             resolve(false);
         });
         popups.audioCheck = popup;
-        popups.others.push(popups.audioCheck);
+        //popups.others.push(popups.audioCheck);
     })
     return userChoice;
 }
