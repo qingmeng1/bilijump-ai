@@ -1,11 +1,21 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const keys = ['autoJump', 'enabled', 'tagFilter', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
 
-    let response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent('bilijump-ai-api-config.oooo.uno')}&type=TXT`);
-    let aiconfig = await response.json();
-    
-    const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
-    document.getElementById('free').textContent = 'free, only ' + defaultSettings?.apiModel;
+    let aiconfig = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: "kvQuery",
+            k: "bilijump-ai-api-config"
+        }, response => {
+            if (response.success) {
+                resolve(response?.data);
+            } else {
+                styleLog("Background fetch error: " + response.error);
+                reject(new Error(response.error));
+            }
+        });
+    });
+    console.log(aiconfig);
+    document.getElementById('free').textContent = aiconfig?.apiDesc;
 
     chrome.storage.sync.get(keys, result => {
         const apply = defaults => keys.forEach(k => {
@@ -23,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const settings = Object.fromEntries(keys.map(k => {
             const el = document.getElementById(k);
             return [k, el.type === 'checkbox' ? el.checked : el.value.trim()];
-    }));
+        }));
         
         chrome.storage.sync.set(settings, () => {
             chrome.action.setIcon({path: settings.enabled?'icons/icon48_red_3.png':'icons/icon48_blue.png'});
@@ -66,9 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiURLDropdown.style.display = 'none';
 
             if (option.id.trim() === 'free') {
-                document.getElementById('apiKey').value = defaultSettings?.apiKey;
-                document.getElementById('apiURL').value = defaultSettings?.apiURL;
-                document.getElementById('apiModel').value = defaultSettings?.apiModel;
+                document.getElementById('apiKey').value = aiconfig?.apiKey;
+                document.getElementById('apiURL').value = aiconfig?.apiURL;
+                document.getElementById('apiModel').value = aiconfig?.apiModel;
             }else {
                 document.getElementById('apiKey').value = '';
                 document.getElementById('apiModel').value = '';
