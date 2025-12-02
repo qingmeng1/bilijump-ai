@@ -1,28 +1,21 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const keys = ['autoJump', 'enabled', 'tagFilter', 'apiKey', 'apiURL', 'apiModel', 'audioEnabled', 'autoAudio', 'aliApiKey'];
 
-    let aiconfig;
-    try {
-        aiconfig = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: "getPopupConfig" }, response => {
-                if (chrome.runtime.lastError) {
-                    return reject(new Error(chrome.runtime.lastError.message));
-                }
-                if (response && response.success) {
-                    resolve(response.data);
-                } else {
-                    console.error("Error fetching popup config:", response?.error);
-                    reject(new Error(response?.error || "Unknown error"));
-                }
-            });
+    let aiconfig = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: "kvQuery",
+            k: "bilijump-ai-api-config"
+        }, response => {
+            if (response.success) {
+                resolve(response?.data);
+            } else {
+                styleLog("Background fetch error: " + response.error);
+                reject(new Error(response.error));
+            }
         });
-    } catch (e) {
-        console.error("Failed to load config:", e);
-        aiconfig = { Answer: [] }; 
-    }
+    });
     console.log(aiconfig);
-    const defaultSettings = JSON.parse(aiconfig?.Answer?.[0]?.data);
-    document.getElementById('free').textContent = 'free, only ' + defaultSettings?.apiModel;
+    document.getElementById('free').textContent = aiconfig?.apiDesc;
 
     chrome.storage.sync.get(keys, result => {
         const apply = defaults => keys.forEach(k => {

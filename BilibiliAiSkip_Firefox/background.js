@@ -28,27 +28,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
-  if (message.action === "getPopupConfig") {
-    fetch(`https://dns.google/resolve?name=${encodeURIComponent('bilijump-ai-api-config.oooo.uno')}&type=TXT`)
-      .then(response => response.json())
-      .then(data => sendResponse({ success: true, data }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+  if (message.action === "kvQuery") {
+    getConfig(message.k)
+    .then(data => sendResponse({ success: true, data: data }))
+    .catch(error => sendResponse({ success: false, error: error }));
     return true;
   }
-
   if (message.action === "fetchTranscription") {
     fetch(message.url)
-      .then(response => response.text())
-      .then(data => sendResponse({ success: true, data }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+    .then(response => response.text())
+    .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 });
 
 async function initConfig() {
   const [config, banModels] = await Promise.all([
-    getDnsConfig('bilijump-config.oooo.uno'),
-    getDnsConfig('bilijump-ai-ban-model.oooo.uno')
+    getConfig('bilijump-config'),
+    getConfig('bilijump-ai-ban-model')
   ]);
 
   await chrome.storage.sync.set({
@@ -70,17 +68,13 @@ async function initConfig() {
   });
 }
 
-async function getDnsConfig(dns) {
-  let url = `https://1.1.1.1/dns-query?name=${encodeURIComponent(dns)}&type=TXT`;
+async function getConfig(k) {
+  let url = `https://api.cloudflare.com/client/v4/accounts/34c49ed8e1d2bd41c330fb65de4c5890/storage/kv/namespaces/1c7e51cc9ae546748c5afc55df196f85/values/${encodeURIComponent(k)}`;
   for (let i = 0; i < 3; i++) {
     try {
-      const response = await fetch(url, { headers: { "accept": "application/dns-json" } });
+      const response = await fetch(url, { headers: { "Authorization": `Bearer Dmlpe9TkvsvBCE0N-FkqeRkN5ANCyHTnUSnAtGCH`, "Content-Type": "application/json"} });
       if (response.ok) {
-        const config = await response.json();
-        const dataString = config?.Answer?.[0]?.data?.replace(/" "/g, "");
-        if (dataString) {
-          return JSON.parse(JSON.parse(dataString));
-        }
+        return await response.json();
       }
     } catch {
       // Ignore errors to allow for retry
@@ -88,6 +82,7 @@ async function getDnsConfig(dns) {
   }
   return null;
 }
+
 
 async function loadPrompt() {
   const promptURL = chrome.runtime.getURL('prompt.txt');
