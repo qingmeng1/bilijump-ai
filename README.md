@@ -28,6 +28,9 @@
 ## 新增脚本 [script](script/)
 * **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，ios 端使用番剧的跳过 OPED 功能，ipad 端使用弹幕功能，点击弹幕跳过；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
 
+## v2.3.24 版本更新
+* ** 功能优化**：  增加 api key 的历史记录功能。
+* 
 ## v2.3.20 版本更新
 * **修复 bug**：  修复 bug，上架 Firefox 商店。
   
