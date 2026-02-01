@@ -80,6 +80,11 @@ let popups = { audioCheck: null, task: null, ai: null, ads: [], others: []}, now
                         popups.others.push(showPopup('Re-fetch AD data.'));
                         adsData = await adRecognition(bvid,pvid);
                     }
+
+                    bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
+                    if(bvid == 'watchlater') bvid = new URLSearchParams(window.location.search).get('bvid');
+                    if(bid !== bvid || pid !== pvid) return;
+
                     styleLog(`广告数据: ` + JSON.stringify(adsData));
 
                     new Promise(async resolve => {
@@ -315,7 +320,7 @@ async function adRecognition(bvid,pvid) {
         let tempAds = JSON.parse(dbResults?.data || "{}");
         if(dbResults?.data && tempAds?.ads && tempAds?.msg) {
             popups.others.push(showPopup(`使用云端数据, 模型: ${dbResults?.model}.`));
-            correctButton(cid, tempAds);
+            correctButton(cid, tempAds, bvid, pvid);
             return tempAds;
         }
 
@@ -464,7 +469,7 @@ async function adRecognition(bvid,pvid) {
             }
         });
 
-        correctButton(cid, resultAD);
+        correctButton(cid, resultAD, bvid, pvid);
         resultS = await chrome.storage.local.get('subtitle');
         if (resultS?.subtitle?.hasOwnProperty(cid)) {
             delete resultS.subtitle[cid];
@@ -1350,7 +1355,11 @@ function updateTimes(cid, skip_time) {
     });
 }
 
-function correctButton(cid, data) {
+function correctButton(cid, data, bid, pid) {
+    bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
+    if(bvid == 'watchlater') bvid = new URLSearchParams(window.location.search).get('bvid');
+    if(bid !== bvid || pid !== pvid) return;
+
     const adLength = data.ads.length;
     const adTime = data.ads.reduce((sum, ad) => sum + (parseFloat(ad.end_time) - parseFloat(ad.start_time)), 0);
     const iconUse = Math.max(adLength < 3 ? adLength : 3, adTime == 0 ? 0 : adTime <= 45 ? 1 : adTime <= 90 ? 2 : 3);

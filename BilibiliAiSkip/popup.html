@@ -204,6 +204,17 @@
             transition: background 0.2s ease;
         }
 
+        .dropdown-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-btn:hover {
+            color: #ff4d4f !important;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
 
         .dropdown-option {
             padding: 8px 12px;
@@ -237,7 +248,7 @@
             border-radius: 6px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
             z-index: 10;
-            max-height: 150px;
+            max-height: 90px;
             overflow-y: auto;
         }
 
@@ -333,7 +344,10 @@
     </div>
     <div class="setting">
         <label for="apiKey">AI API Key</label>
-        <input type="text" id="apiKey" placeholder="输入 AI API Key">
+        <div style="position: relative;">
+            <input type="text" id="apiKey" placeholder="输入 AI API Key">
+            <div id="apiKeyDropdown" class="apiURLDropdown"></div>
+        </div>
         <small>(e.g., sk-xxxxxx...)</small>
     </div>
     <div class="setting">

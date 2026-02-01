@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const el = document.getElementById(k);
             return [k, el.type === 'checkbox' ? el.checked : el.value.trim()];
         }));
+
+        if (settings.apiKey && settings.apiURL && settings.apiModel) {
+            chrome.storage.sync.get({apiHistory: {}}, res => {
+                res.apiHistory[settings.apiKey] = { url: settings.apiURL, model: settings.apiModel };
+                chrome.storage.sync.set({ apiHistory: res.apiHistory });
+            });
+        }
         
         chrome.storage.sync.set(settings, () => {
             chrome.action.setIcon({path: settings.enabled?'icons/icon48_red_3.png':'icons/icon48_blue.png'});
@@ -45,26 +52,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 300);
 
     const apiURLInput = document.getElementById('apiURL');
-    const apiURLDropdown = document.getElementById('apiURLDropdown');
-    const dropdownOptions = apiURLDropdown.querySelectorAll('.dropdown-option');
+    const apiURLDrop = document.getElementById('apiURLDropdown');
+    const apiKeyInput = document.getElementById('apiKey');
+    const apiKeyDrop = document.getElementById('apiKeyDropdown');
+    const dropdownOptions = apiURLDrop.querySelectorAll('.dropdown-option');
 
     apiURLInput.addEventListener('click', (e) => {
-        apiURLDropdown.style.display = 'block';
+        apiURLDrop.style.display = 'block';
+        apiKeyDrop.style.display = 'none';
         e.stopPropagation();
     });
 
     dropdownOptions.forEach(option => {
         option.addEventListener('click', () => {
             apiURLInput.value = option.getAttribute('data-value');
-            apiURLDropdown.style.display = 'none';
+            apiURLDrop.style.display = 'none';
             save();
         });
     });
 
-    document.addEventListener('click', (e) => {
-        if (!apiURLInput.contains(e.target) && !apiURLDropdown.contains(e.target)) {
-            apiURLDropdown.style.display = 'none';
+
+    apiKeyDrop.addEventListener('click', e => {
+        if (e.target.classList.contains('delete-btn')) {
+            const option = e.target.closest('.dropdown-option');
+            const keyToDelete = option.dataset.k;
+            option.remove();
+            chrome.storage.sync.get({apiHistory: {}}, res => {
+                const h = res.apiHistory;
+                if (h[keyToDelete]) {
+                    delete h[keyToDelete];
+                    chrome.storage.sync.set({ apiHistory: h });
+                }
+                if (Object.keys(h).length === 0) {
+                    apiKeyDrop.style.display = 'none';
+                }
+            });
+            return;
         }
+
+        const t = e.target.closest('.dropdown-option');
+        if (t) {
+            document.getElementById('apiKey').value = t.dataset.k;
+            document.getElementById('apiURL').value = t.dataset.u;
+            document.getElementById('apiModel').value = t.dataset.m;
+            apiKeyDrop.style.display = 'none';
+            save();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!apiURLInput.contains(e.target) && !apiURLDrop.contains(e.target)) apiURLDrop.style.display = 'none';
+        if (!apiKeyInput.contains(e.target) && !apiKeyDrop.contains(e.target)) apiKeyDrop.style.display = 'none';
     });
 
     apiURLInput.addEventListener('input', save);
@@ -73,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         option.addEventListener('click', () => {
             const selectedValue = option.getAttribute('data-value');
             apiURLInput.value = selectedValue;
-            apiURLDropdown.style.display = 'none';
+            apiURLDrop.style.display = 'none';
 
             if (option.id.trim() === 'free') {
                 document.getElementById('apiKey').value = aiconfig?.apiKey;
@@ -86,6 +124,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             save();
         });
     });
+
+    apiKeyInput.addEventListener('click', e => {
+        e.stopPropagation();
+        apiURLDrop.style.display = 'none';
+        chrome.storage.sync.get({apiHistory: {}}, res => {
+            const h = res.apiHistory;
+            if (!Object.keys(h).length) return;
+            apiKeyDrop.innerHTML = Object.entries(h).reverse().map(([k, v]) => 
+            `<div class="dropdown-option" data-k="${k}" data-u="${v.url}" data-m="${v.model}" style="display: flex; align-items: center; padding: 5px 10px; gap: 10px;">
+                <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;">
+                    ${new URL(v.url).host}
+                </span>
+                <small style="color: #aaa; font-family: monospace; white-space: nowrap; flex-shrink: 0;">
+                    ${k.slice(0,7)}...${k.slice(-4)}
+                </small>
+                <span class="delete-btn" style="color: #999; cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0; padding-left: 5px;" title="删除">×</span>
+            </div>`
+        ).join('');
+            apiKeyDrop.style.display = 'block';
+        });
+    });
+
 });
 
 const debounce = (fn, wait) => {
