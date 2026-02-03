@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <small style="color: #aaa; font-family: monospace; white-space: nowrap; flex-shrink: 0;">
                     ${k.slice(0,7)}...${k.slice(-4)}
                 </small>
-                <span class="delete-btn" style="color: #999; cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0; padding-left: 5px;" title="删除">×</span>
+                <span class="delete-btn" style="color: #999; cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0;" title="删除">×</span>
             </div>`
         ).join('');
             apiKeyDrop.style.display = 'block';
