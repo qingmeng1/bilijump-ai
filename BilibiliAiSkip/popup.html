@@ -117,6 +117,21 @@
             background: #fff;
         }
 
+        #grantApiAccess {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 6px;
+            background: #3498db;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #grantApiAccess:hover {
+            background: #2980b9;
+        }
+
         small {
             display: block;
             color: #7f8c8d;
@@ -340,6 +355,8 @@
                 <div class="dropdown-option" data-value="https://api.oaipro.com//v1/chat/completions">oaipro api <a href="https://api.oaipro.com/register?aff=IpuZ" target="_blank">register</a></div>
             </div>
         </div>
+        <button type="button" id="grantApiAccess">授权当前 API 地址</button>
+        <small id="apiAccessStatus">需要授权后才能访问不支持 CORS 的 API</small>
         <small>(e.g., https://www.openai.com/v1/chat/completions)</small>
     </div>
     <div class="setting">
