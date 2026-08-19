@@ -77,8 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (origin !== getApiOrigin()) return;
             if (chrome.runtime.lastError) {
                 apiAccessStatus.textContent = `授权失败: ${chrome.runtime.lastError.message}`;
+            } else if (granted) {
+                apiAccessStatus.textContent = `已授权 ${origin}，正在刷新视频页面`;
+                chrome.runtime.sendMessage({action: "reloadApiSourceTab", origin});
             } else {
-                apiAccessStatus.textContent = granted ? `已授权 ${origin}` : `未授予 ${origin}`;
+                apiAccessStatus.textContent = `未授予 ${origin}`;
             }
         });
     });
