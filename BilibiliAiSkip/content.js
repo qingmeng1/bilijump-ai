@@ -386,7 +386,8 @@ async function adRecognition(bvid,pvid) {
                 }
                 popups.others.push(showPopup("提交音频文件."));
                 styleLog("audioUrl: " + audioUrl);
-                const taskId = await submitTranscriptionTask("https://bili.oooo.uno?url="+encodeURIComponent(audioUrl));
+                const ossAudioUrl = await uploadAudioToDashScope(audioUrl);
+                const taskId = await submitTranscriptionTask(ossAudioUrl);
                 styleLog("Task submitted successfully, Task ID: " + taskId);
 
                 popups.others.push(showPopup("等待音频分析结果."));
@@ -1257,6 +1258,7 @@ async function submitTranscriptionTask(audioURL) {
       url: settings.aliApiURL,
       method: "POST",
       apiKey: settings.aliApiKey,
+      ossResourceResolve: audioURL.startsWith("oss://"),
       body: requestBody
     }, response => {
       if (response.success) {
@@ -1264,6 +1266,24 @@ async function submitTranscriptionTask(audioURL) {
       } else {
         styleLog("Background fetch error: " + JSON.stringify(response.error));
         reject(new Error(response.error));
+      }
+    });
+  });
+}
+
+async function uploadAudioToDashScope(audioURL) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      action: "uploadDashScopeTemp",
+      audioUrl: audioURL,
+      apiKey: settings.aliApiKey,
+      model: "paraformer-v2"
+    }, response => {
+      if (response?.success) {
+        resolve(response.url);
+      } else {
+        styleLog("DashScope temporary upload error: " + JSON.stringify(response?.error));
+        reject(new Error(response?.error || "DashScope temporary upload failed"));
       }
     });
   });
