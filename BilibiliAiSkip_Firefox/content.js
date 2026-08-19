@@ -435,6 +435,7 @@ async function adRecognition(bvid,pvid) {
         for(let i = 0; i < 3 && (!resultAD?.ads || !resultAD?.msg); i++) {
             data = await callOpenAI(subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
 
+            if (!data) break;
             if (!aiResponse) {
                 showPopup("AI 解析失败.");
                 showPopup('Re-fetch AI.');
@@ -495,30 +496,27 @@ async function callOpenAI(subtitle) {
         messages: [ {role: "system", content: storageData.prompt},
                     {role: "user", content: subtitle}]};
 
-    let response;
-    for (var i = 0; i < 3;) {
-        try {
-            response = await fetch(settings.apiURL, {
-                method: "POST",
-                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${settings.apiKey}`},
-                body: JSON.stringify(requestData)
-            });
-            i = 3;
-        } catch (error) {
-            i++;
-        }
-    }
+    const response = await new Promise(resolve => {
+        chrome.runtime.sendMessage({
+            action: "fetchOpenAI",
+            body: requestData
+        }, result => {
+            resolve(chrome.runtime.lastError
+                ? {success: false, error: chrome.runtime.lastError.message}
+                : result);
+        });
+    });
 
-    const data = await response.json();
+    if (!response?.success) {
+        showPopup("API request failed: " + (response?.error || "Unknown error"));
+        return null;
+    }
+    const data = response.data;
     if (data.error?.message) {
         showPopup("API error: " + data.error.message);
-        return "";
+        return null;
     }
 
-    if (!data.choices?.length) {
-        showPopup("未收到有效响应.");
-        return "";
-    }
     return data;
 }
 
@@ -1038,7 +1036,10 @@ function showCorrectionPopup(cid, currentAdsData) {
                 let data = await callOpenAI(dbResults.subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
                 for(let i = 1; i < 3 && !aiResponse; i++) {
                     showPopup('Re-fetch AI.');
-                    aiResponse = await callOpenAI(dbResults.subtitle);
+                    data = await callOpenAI(dbResults.subtitle);
+                    if (!data) break;
+                    aiResponse = data.choices?.[0]?.message?.content;
+                    total_tokens = data.usage?.total_tokens;
                 }
                 closePopup(popups.ai);
 

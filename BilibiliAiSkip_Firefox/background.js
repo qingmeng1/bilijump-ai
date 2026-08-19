@@ -15,6 +15,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+  if (message.action === "fetchOpenAI") {
+    fetchOpenAI(message.body)
+    .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
   if (message.action === "uploadDashScopeTemp") {
     uploadDashScopeTemp(message.audioUrl, message.apiKey, message.model || "paraformer-v2")
     .then(url => sendResponse({ success: true, url }))
@@ -49,6 +55,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+async function fetchOpenAI(body) {
+  const stored = await chrome.storage.sync.get(['apiURL', 'apiKey', 'config']);
+  const url = new URL(stored.apiURL ?? stored.config?.apiURL);
+  const apiKey = stored.apiKey ?? stored.config?.apiKey;
+  if (url.protocol !== "https:") throw new Error("Only HTTPS API URLs are supported");
+
+  const origin = `${url.protocol}//${url.hostname}/*`;
+  if (!await chrome.permissions.contains({ origins: [origin] })) {
+    throw new Error(`Missing API access permission for ${origin}. Grant it in the extension settings.`);
+  }
+
+  const response = await fetch(url.href, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`API request failed (${response.status}): ${data.error?.message || data.message || response.statusText}`);
+  }
+  return data;
+}
 
 async function uploadDashScopeTemp(audioUrl, apiKey, model) {
   const sourceUrl = new URL(audioUrl);

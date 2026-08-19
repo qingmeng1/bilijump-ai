@@ -11,6 +11,9 @@
     "*://api.cloudflare.com/*",
     "*://api.bilibili.com/*"
   ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
   "permissions": [
     "storage",
     "declarativeNetRequestWithHostAccess"
@@ -48,7 +51,8 @@
   "homepage_url": "https://oooo.uno",
   "browser_specific_settings": {
     "gecko": {
-      "id": "bilibili-ai-skip@oooo.uno"
+      "id": "bilibili-ai-skip@oooo.uno",
+      "strict_min_version": "128.0"
     }
   }
 }
