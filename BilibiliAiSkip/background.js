@@ -21,6 +21,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+  if (message.action === "openApiSettings") {
+    openApiSettings(sender.tab?.windowId, sender.tab?.id, message.origin)
+    .then(() => sendResponse({ success: true }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  if (message.action === "reloadApiSourceTab") {
+    reloadApiSourceTab(message.origin)
+    .then(() => sendResponse({ success: true }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
   if (message.action === "uploadDashScopeTemp") {
     uploadDashScopeTemp(message.audioUrl, message.apiKey, message.model || "paraformer-v2")
     .then(url => sendResponse({ success: true, url }))
@@ -48,6 +60,81 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+let apiPermissionReloadInProgress = false;
+
+chrome.permissions.onAdded.addListener(permissions => {
+  handleApiPermissionAdded(permissions).catch(error => {
+    console.warn("Failed to refresh the API source tab:", error);
+  });
+});
+
+async function handleApiPermissionAdded(permissions) {
+  const grantedOrigins = permissions.origins || [];
+  const { apiPermissionOrigin } = await chrome.storage.local.get("apiPermissionOrigin");
+  if (apiPermissionOrigin && grantedOrigins.includes(apiPermissionOrigin)) {
+    await reloadApiSourceTab(apiPermissionOrigin);
+  }
+}
+
+async function openApiSettings(windowId, sourceTabId, origin) {
+  if (Number.isInteger(sourceTabId) && typeof origin === "string") {
+    await chrome.storage.local.set({
+      apiPermissionSourceTabId: sourceTabId,
+      apiPermissionOrigin: origin
+    });
+  }
+
+  if (chrome.action?.openPopup) {
+    try {
+      await chrome.action.openPopup(windowId === undefined ? undefined : { windowId });
+      return;
+    } catch {
+      // Fall back when the toolbar popup cannot be opened programmatically.
+    }
+  }
+
+  const popupWidth = 300;
+  const popupHeight = 600;
+  const currentWindow = windowId === undefined
+    ? await chrome.windows.getLastFocused()
+    : await chrome.windows.get(windowId);
+  const createOptions = {
+    url: chrome.runtime.getURL("popup.html"),
+    type: "popup",
+    width: popupWidth,
+    height: popupHeight,
+    focused: true
+  };
+
+  if (Number.isFinite(currentWindow.left) && Number.isFinite(currentWindow.width)) {
+    createOptions.left = Math.round(currentWindow.left + currentWindow.width - popupWidth);
+  }
+  if (Number.isFinite(currentWindow.top)) {
+    createOptions.top = Math.round(currentWindow.top);
+  }
+
+  await chrome.windows.create(createOptions);
+}
+
+async function reloadApiSourceTab(origin) {
+  if (apiPermissionReloadInProgress) return;
+  apiPermissionReloadInProgress = true;
+  try {
+    const { apiPermissionSourceTabId, apiPermissionOrigin } = await chrome.storage.local.get([
+      "apiPermissionSourceTabId",
+      "apiPermissionOrigin"
+    ]);
+    if (!Number.isInteger(apiPermissionSourceTabId) || !apiPermissionOrigin) return;
+    if (origin && origin !== apiPermissionOrigin) return;
+    if (!await chrome.permissions.contains({ origins: [apiPermissionOrigin] })) return;
+
+    await chrome.storage.local.remove(["apiPermissionSourceTabId", "apiPermissionOrigin"]);
+    await chrome.tabs.reload(apiPermissionSourceTabId);
+  } finally {
+    apiPermissionReloadInProgress = false;
+  }
+}
 
 async function fetchOpenAI(body) {
   const stored = await chrome.storage.sync.get(['apiURL', 'apiKey', 'config']);
