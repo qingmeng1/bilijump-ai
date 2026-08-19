@@ -29,6 +29,9 @@
 * **增加功能**： 增加 surge 模块去广告功能。
 * **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，使用番剧的跳过 OPED 功能自动跳过；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
 
+## v2.3.26 版本更新
+* **功能优化**：解决 CORS 限制问题，增加主机权限授权功能。
+
 ## v2.3.25 版本更新
 * **功能优化**：Chrome 与 Firefox 扩展改为将 Bilibili 音频直接上传至百炼临时 OSS，不再依赖音频代理服务。
 
