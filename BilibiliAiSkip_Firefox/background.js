@@ -5,7 +5,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       headers: {
         "Authorization": `Bearer ${message.apiKey}`,
         "Content-Type": "application/json",
-        "X-DashScope-Async": "enable"
+        "X-DashScope-Async": "enable",
+        ...(message.ossResourceResolve ? { "X-DashScope-OssResourceResolve": "enable" } : {})
       },
       body: JSON.stringify(message.body)
     })
@@ -17,6 +18,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "fetchOpenAI") {
     fetchOpenAI(message.body)
     .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  if (message.action === "uploadDashScopeTemp") {
+    uploadDashScopeTemp(message.audioUrl, message.apiKey, message.model || "paraformer-v2")
+    .then(url => sendResponse({ success: true, url }))
     .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
@@ -73,6 +80,85 @@ async function fetchOpenAI(body) {
     throw new Error(`API request failed (${response.status}): ${data.error?.message || data.message || response.statusText}`);
   }
   return data;
+}
+
+async function uploadDashScopeTemp(audioUrl, apiKey, model) {
+  const sourceUrl = new URL(audioUrl);
+  if (!/(^|\.)bilivideo\.(com|cn)$/i.test(sourceUrl.hostname)) {
+    throw new Error("Unsupported Bilibili audio host");
+  }
+
+  await ensureBilibiliAudioHeaders();
+  const audioResponse = await fetch(sourceUrl.href, { method: "GET", cache: "no-store" });
+  if (!audioResponse.ok) {
+    throw new Error(`Bilibili audio download failed: ${audioResponse.status}`);
+  }
+
+  const audioBlob = await audioResponse.blob();
+  const policyResponse = await fetch(
+    `https://dashscope.aliyuncs.com/api/v1/uploads?action=getPolicy&model=${encodeURIComponent(model)}`,
+    { headers: { "Authorization": `Bearer ${apiKey}` } }
+  );
+  if (!policyResponse.ok) {
+    throw new Error(`DashScope upload policy failed: ${policyResponse.status}`);
+  }
+
+  const policyResult = await policyResponse.json();
+  const policy = policyResult.data;
+  if (!policy?.upload_host || !policy?.upload_dir) {
+    throw new Error(policyResult.message || "Invalid DashScope upload policy");
+  }
+
+  const maxBytes = Number(policy.max_file_size_mb) * 1024 * 1024;
+  if (Number.isFinite(maxBytes) && maxBytes > 0 && audioBlob.size > maxBytes) {
+    throw new Error(`Audio file exceeds DashScope temporary upload limit (${policy.max_file_size_mb} MB)`);
+  }
+
+  const uploadHost = new URL(policy.upload_host);
+  if (uploadHost.protocol !== "https:" || !uploadHost.hostname.endsWith(".aliyuncs.com")) {
+    throw new Error("Invalid DashScope upload host");
+  }
+
+  const fileName = `${crypto.randomUUID()}.m4a`;
+  const key = `${policy.upload_dir}/${fileName}`;
+  const form = new FormData();
+  form.append("OSSAccessKeyId", policy.oss_access_key_id);
+  form.append("Signature", policy.signature);
+  form.append("policy", policy.policy);
+  form.append("x-oss-object-acl", policy.x_oss_object_acl);
+  form.append("x-oss-forbid-overwrite", policy.x_oss_forbid_overwrite);
+  form.append("key", key);
+  form.append("success_action_status", "200");
+  form.append("file", audioBlob, fileName);
+
+  const uploadResponse = await fetch(uploadHost.href, { method: "POST", body: form });
+  if (!uploadResponse.ok) {
+    throw new Error(`DashScope temporary upload failed: ${uploadResponse.status}`);
+  }
+
+  return `oss://${key}`;
+}
+
+async function ensureBilibiliAudioHeaders() {
+  await chrome.declarativeNetRequest.updateSessionRules({
+    removeRuleIds: [1],
+    addRules: [{
+      id: 1,
+      priority: 1,
+      action: {
+        type: "modifyHeaders",
+        requestHeaders: [{
+          header: "Referer",
+          operation: "set",
+          value: "https://www.bilibili.com/"
+        }]
+      },
+      condition: {
+        regexFilter: "^https?://[^/]+\\.bilivideo\\.(com|cn)/",
+        resourceTypes: ["xmlhttprequest"]
+      }
+    }]
+  });
 }
 
 async function initConfig() {
