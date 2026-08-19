@@ -508,7 +508,14 @@ async function callOpenAI(subtitle) {
     });
 
     if (!response?.success) {
-        showPopup("API request failed: " + (response?.error || "Unknown error"));
+        const errorMessage = response?.error || "Unknown error";
+        if (errorMessage.startsWith("Missing API access permission for ")) {
+            const origin = errorMessage.match(/^Missing API access permission for (.+?)\. Grant it/)?.[1];
+            showPopup(origin ? `请为 API 地址 ${origin} 进行授权。` : "请为 API 地址进行授权。");
+            chrome.runtime.sendMessage({action: "openApiSettings", origin});
+        } else {
+            showPopup("API request failed: " + errorMessage);
+        }
         return null;
     }
     const data = response.data;
