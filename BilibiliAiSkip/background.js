@@ -94,27 +94,16 @@ async function openApiSettings(windowId, sourceTabId, origin) {
     }
   }
 
-  const popupWidth = 300;
-  const popupHeight = 600;
-  const currentWindow = windowId === undefined
-    ? await chrome.windows.getLastFocused()
-    : await chrome.windows.get(windowId);
   const createOptions = {
     url: chrome.runtime.getURL("popup.html"),
-    type: "popup",
-    width: popupWidth,
-    height: popupHeight,
-    focused: true
+    active: true
   };
 
-  if (Number.isFinite(currentWindow.left) && Number.isFinite(currentWindow.width)) {
-    createOptions.left = Math.round(currentWindow.left + currentWindow.width - popupWidth);
-  }
-  if (Number.isFinite(currentWindow.top)) {
-    createOptions.top = Math.round(currentWindow.top);
+  if (Number.isInteger(windowId)) {
+    createOptions.windowId = windowId;
   }
 
-  await chrome.windows.create(createOptions);
+  await chrome.tabs.create(createOptions);
 }
 
 async function reloadApiSourceTab(origin) {
