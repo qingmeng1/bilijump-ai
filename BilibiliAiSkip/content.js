@@ -362,6 +362,26 @@ async function adRecognition(bvid,pvid) {
                     showPopup(`Please set aliApiKey in extension settings`);
                     return {ads:[], msg:"Please set aliApiKey"};
                 }
+                let aliModel;
+                try {
+                    const v2Usage = await getLocalAliUsage(settings.aliApiKey, "paraformer-v2");
+                    if (v2Usage.remaining > 0) {
+                        aliModel = "paraformer-v2";
+                    } else {
+                        const v1Usage = await getLocalAliUsage(settings.aliApiKey, "paraformer-v1");
+                        if (v1Usage.remaining > 0) {
+                            aliModel = "paraformer-v1";
+                            showPopup("paraformer-v2 额度已用完，改用 paraformer-v1.");
+                        }
+                    }
+                } catch (error) {
+                    styleLog("Failed to read Paraformer remaining quota: " + error.message);
+                    return {ads:[], msg:"无法读取 Paraformer 剩余额度，已停止音频分析."};
+                }
+                if (!aliModel) {
+                    showPopup("paraformer-v2 和 v1 剩余额度均为 0，已停止音频分析.");
+                    return {ads:[], msg:"Paraformer 剩余额度均为 0，未调用音频识别."};
+                }
                 if (settings.autoAudio)  {
                     popups.others.push(showPopup("01:00 后解锁音频分析."));
                     while(document.querySelector('video').currentTime < 45) {
@@ -386,12 +406,12 @@ async function adRecognition(bvid,pvid) {
                 }
                 popups.others.push(showPopup("提交音频文件."));
                 styleLog("audioUrl: " + audioUrl);
-                const ossAudioUrl = await uploadAudioToDashScope(audioUrl);
-                const taskId = await submitTranscriptionTask(ossAudioUrl);
+                const ossAudioUrl = await uploadAudioToDashScope(audioUrl, aliModel);
+                const taskId = await submitTranscriptionTask(ossAudioUrl, aliModel);
                 styleLog("Task submitted successfully, Task ID: " + taskId);
 
                 popups.others.push(showPopup("等待音频分析结果."));
-                const results = await waitForTaskCompletion(taskId);
+                const results = await waitForTaskCompletion(taskId, aliModel);
 
                 for (const result of results) {
                     if (result.subtask_status === "SUCCEEDED") {
@@ -1254,12 +1274,27 @@ const getTime = (seconds) => {
     ].map(pad).join(':');
 };
 
-async function submitTranscriptionTask(audioURL) {
+async function getLocalAliUsage(apiKey, model) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({action: "getAliUsage", apiKey, model}, response => {
+      if (chrome.runtime.lastError || !response?.success) {
+        reject(new Error(chrome.runtime.lastError?.message || response?.error || "读取剩余额度失败"));
+        return;
+      }
+      resolve(response.data);
+    });
+  });
+}
+
+async function submitTranscriptionTask(audioURL, model) {
   const requestBody = {
-    model: "paraformer-v2",
+    model,
     input: { file_urls: [audioURL] },
-    parameters: { channel_id: [0], language_hints: ["zh", "en", "ja", "yue", "ko", "de", "fr", "ru"] }
+    parameters: { channel_id: [0] }
   };
+  if (model === "paraformer-v2") {
+    requestBody.parameters.language_hints = ["zh", "en", "ja", "yue", "ko", "de", "fr", "ru"];
+  }
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({
       action: "fetchDashScope",
@@ -1279,13 +1314,13 @@ async function submitTranscriptionTask(audioURL) {
   });
 }
 
-async function uploadAudioToDashScope(audioURL) {
+async function uploadAudioToDashScope(audioURL, model) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({
       action: "uploadDashScopeTemp",
       audioUrl: audioURL,
       apiKey: settings.aliApiKey,
-      model: "paraformer-v2"
+      model
     }, response => {
       if (response?.success) {
         resolve(response.url);
@@ -1297,7 +1332,7 @@ async function uploadAudioToDashScope(audioURL) {
   });
 }
 
-async function waitForTaskCompletion(taskId) {
+async function waitForTaskCompletion(taskId, model) {
   while (true) {
     try {
       const response = await new Promise((resolve, reject) => {
@@ -1322,6 +1357,23 @@ async function waitForTaskCompletion(taskId) {
         case "SUCCEEDED":
             showPopup("音频解析成功.");
             closePopup(popups.task);
+            if (Number(response.usage?.duration) > 0) {
+                await new Promise(resolve => {
+                    chrome.runtime.sendMessage({
+                        action: "recordAliUsage",
+                        apiKey: settings.aliApiKey,
+                        model,
+                        duration: response.usage.duration,
+                        taskId
+                    }, recordResponse => {
+                        if (chrome.runtime.lastError || !recordResponse?.success) {
+                            styleLog("Failed to record Paraformer usage: " +
+                                (chrome.runtime.lastError?.message || recordResponse?.error || "Unknown error"));
+                        }
+                        resolve();
+                    });
+                });
+            }
             return response.output.results;
         case "FAILED":
             showPopup("音频解析失败.");

@@ -29,6 +29,12 @@
 * **增加功能**： 增加 surge 模块去广告功能。
 * **增加 [surge 模块](script/bilijump.sgmodule)**： 增加 surge 模块，使用番剧的跳过 OPED 功能自动跳过；在 surge 中导入模块，开启 MitM 功能即可启用，目前仅支持云端数据；模块修改自 [Sparkle](https://github.com/kokoryh/Sparkle)
 
+## v2.3.29 版本更新
+* **本地额度统计**：根据任务响应中的 `usage.duration`，按 API Key 和自然月分别扣减 `paraformer-v2`、`paraformer-v1` 剩余额度；优先使用 v2，v2 额度耗尽后自动切换 v1，两者均耗尽时停止调用音频识别，点击剩余额度可手动修正。
+
+## v2.3.28 版本更新
+* **本地 API 支持**：自定义 API 可使用 `http://localhost:<端口>` 或 `http://127.0.0.1:<端口>` 连接本机 sub2api；其他远程 API 仍要求 HTTPS。
+
 ## v2.3.27 版本更新
 * **兼容性修复**：修复 Arc 等浏览器无法在独立扩展弹窗中申请自定义 API 域名权限的问题；工具栏弹窗不可用时改为在普通标签页中授权（[#23](https://github.com/qingmeng1/bilijump-ai/issues/23)）。
 

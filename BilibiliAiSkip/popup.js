@@ -5,8 +5,79 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('apiKey');
     const apiKeyDrop = document.getElementById('apiKeyDropdown');
     const apiAccessStatus = document.getElementById('apiAccessStatus');
+    const aliApiKeyInput = document.getElementById('aliApiKey');
+    const aliUsage = document.getElementById('aliUsage');
+    const aliUsageRemaining = {
+        'paraformer-v2': document.getElementById('aliUsageRemainingV2'),
+        'paraformer-v1': document.getElementById('aliUsageRemainingV1')
+    };
     const freeOption = document.getElementById('free');
     let aiConfig;
+    let aliUsageRequestId = 0;
+
+    const formatNumber = value => Number(value).toLocaleString('zh-CN', {maximumFractionDigits: 4});
+
+    const showAliUsage = (model, data) => {
+        const button = aliUsageRemaining[model];
+        button.textContent = formatNumber(data.remaining);
+        button.dataset.remaining = String(data.remaining);
+        button.disabled = false;
+        aliUsage.title = '根据本扩展分别记录的模型任务用量计算；点击剩余额度可手动修改';
+    };
+
+    const loadAliUsage = () => {
+        const apiKey = aliApiKeyInput.value.trim();
+        const requestId = ++aliUsageRequestId;
+        if (!apiKey) {
+            Object.values(aliUsageRemaining).forEach(button => {
+                button.textContent = '36,000';
+                button.dataset.remaining = '36000';
+                button.disabled = true;
+            });
+            aliUsage.title = '请先输入阿里云 API Key';
+            return;
+        }
+
+        Object.entries(aliUsageRemaining).forEach(([model, button]) => {
+            button.textContent = '...';
+            chrome.runtime.sendMessage({action: 'getAliUsage', apiKey, model}, response => {
+                if (requestId !== aliUsageRequestId || apiKey !== aliApiKeyInput.value.trim()) return;
+                if (chrome.runtime.lastError || !response?.success) {
+                    button.textContent = '--';
+                    button.disabled = true;
+                    aliUsage.title = chrome.runtime.lastError?.message || response?.error || '读取失败';
+                    return;
+                }
+                showAliUsage(model, response.data);
+            });
+        });
+    };
+
+    const scheduleAliUsageLoad = debounce(loadAliUsage, 300);
+
+    Object.entries(aliUsageRemaining).forEach(([model, button]) => {
+        button.addEventListener('click', () => {
+            const apiKey = aliApiKeyInput.value.trim();
+            if (!apiKey) {
+                alert('请先输入阿里云 API Key');
+                return;
+            }
+            const input = prompt(`请输入 ${model} 剩余额度（秒）`, button.dataset.remaining || '36000');
+            if (input === null) return;
+            const remaining = Number(input.replace(/,/g, '').trim());
+            if (!Number.isFinite(remaining) || remaining < 0 || remaining > 36000) {
+                alert('请输入 0 到 36,000 之间的数字');
+                return;
+            }
+            chrome.runtime.sendMessage({action: 'setAliRemaining', apiKey, model, remaining}, response => {
+                if (chrome.runtime.lastError || !response?.success) {
+                    alert(chrome.runtime.lastError?.message || response?.error || '保存失败');
+                    return;
+                }
+                showAliUsage(model, response.data);
+            });
+        });
+    });
 
     const save = debounce(() => {
         const settings = Object.fromEntries(keys.map(key => {
@@ -33,7 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const getApiOrigin = () => {
         try {
             const url = new URL(apiURLInput.value.trim());
-            return url.protocol === 'https:' ? `${url.protocol}//${url.hostname}/*` : null;
+            const isLocalHttp = url.protocol === 'http:' &&
+                (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+            return url.protocol === 'https:' || isLocalHttp
+                ? `${url.protocol}//${url.hostname}/*`
+                : null;
         } catch {
             return null;
         }
@@ -42,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateApiAccessStatus = () => {
         const origin = getApiOrigin();
         if (!origin) {
-            apiAccessStatus.textContent = '请输入有效的 HTTPS API URL';
+            apiAccessStatus.textContent = '请输入有效的 HTTPS API URL，或本机 HTTP 地址';
             return;
         }
 
@@ -63,8 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 element.addEventListener(element.type === 'checkbox' ? 'change' : 'input', save);
             });
             updateApiAccessStatus();
+            loadAliUsage();
         });
     });
+
+    aliApiKeyInput.addEventListener('input', scheduleAliUsageLoad);
 
     chrome.runtime.sendMessage({action: 'kvQuery', k: 'bilijump-ai-api-config'}, response => {
         if (chrome.runtime.lastError || !response?.success) {
@@ -78,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('grantApiAccess').addEventListener('click', () => {
         const origin = getApiOrigin();
         if (!origin) {
-            apiAccessStatus.textContent = '请输入有效的 HTTPS API URL';
+            apiAccessStatus.textContent = '请输入有效的 HTTPS API URL，或本机 HTTP 地址';
             return;
         }
 

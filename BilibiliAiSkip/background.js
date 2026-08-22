@@ -21,6 +21,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+  if (message.action === "getAliUsage") {
+    getAliUsage(message.apiKey, message.model)
+    .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  if (message.action === "setAliRemaining") {
+    setAliRemaining(message.apiKey, message.model, message.remaining)
+    .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  if (message.action === "recordAliUsage") {
+    recordAliUsage(message.apiKey, message.model, message.duration, message.taskId)
+    .then(data => sendResponse({ success: true, data }))
+    .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
   if (message.action === "openApiSettings") {
     openApiSettings(sender.tab?.windowId, sender.tab?.id, message.origin)
     .then(() => sendResponse({ success: true }))
@@ -129,7 +147,11 @@ async function fetchOpenAI(body) {
   const stored = await chrome.storage.sync.get(['apiURL', 'apiKey', 'config']);
   const url = new URL(stored.apiURL ?? stored.config?.apiURL);
   const apiKey = stored.apiKey ?? stored.config?.apiKey;
-  if (url.protocol !== "https:") throw new Error("Only HTTPS API URLs are supported");
+  const isLocalHttp = url.protocol === "http:" &&
+    (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+  if (url.protocol !== "https:" && !isLocalHttp) {
+    throw new Error("Only HTTPS or local HTTP API URLs are supported");
+  }
 
   const origin = `${url.protocol}//${url.hostname}/*`;
   if (!await chrome.permissions.contains({ origins: [origin] })) {
@@ -149,6 +171,94 @@ async function fetchOpenAI(body) {
     throw new Error(`API request failed (${response.status}): ${data.error?.message || data.message || response.statusText}`);
   }
   return data;
+}
+
+const ALI_MONTHLY_QUOTA_SECONDS = 36000;
+let aliUsageUpdateQueue = Promise.resolve();
+
+function normalizeAliModel(model) {
+  const value = model || "paraformer-v2";
+  if (value !== "paraformer-v1" && value !== "paraformer-v2") {
+    throw new Error("不支持的 Paraformer 模型");
+  }
+  return value;
+}
+
+function getAliUsageStorageKey(apiKey, model) {
+  const key = String(apiKey || "").trim();
+  if (!key) throw new Error("请输入阿里云 API Key");
+  const normalizedModel = normalizeAliModel(model);
+
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const legacyV2Key = `aliUsage:${month}:${(hash >>> 0).toString(16)}:${key.length}`;
+  return normalizedModel === "paraformer-v2" ? legacyV2Key : `${legacyV2Key}:${normalizedModel}`;
+}
+
+async function getAliUsage(apiKey, model) {
+  const normalizedModel = normalizeAliModel(model);
+  const storageKey = getAliUsageStorageKey(apiKey, normalizedModel);
+  const stored = await chrome.storage.local.get(storageKey);
+  const record = stored[storageKey] || {};
+  return {
+    model: normalizedModel,
+    used: Number(record.used) || 0,
+    limit: ALI_MONTHLY_QUOTA_SECONDS,
+    remaining: Math.max(ALI_MONTHLY_QUOTA_SECONDS - (Number(record.used) || 0), 0)
+  };
+}
+
+function updateAliUsage(apiKey, model, update) {
+  const normalizedModel = normalizeAliModel(model);
+  const storageKey = getAliUsageStorageKey(apiKey, normalizedModel);
+  const run = async () => {
+    const stored = await chrome.storage.local.get(storageKey);
+    const record = stored[storageKey] || { used: 0, taskIds: [] };
+    const updated = update(record);
+    await chrome.storage.local.set({ [storageKey]: updated });
+    const used = Number(updated.used) || 0;
+    return {
+      model: normalizedModel,
+      used,
+      limit: ALI_MONTHLY_QUOTA_SECONDS,
+      remaining: Math.max(ALI_MONTHLY_QUOTA_SECONDS - used, 0)
+    };
+  };
+  aliUsageUpdateQueue = aliUsageUpdateQueue.then(run, run);
+  return aliUsageUpdateQueue;
+}
+
+function setAliRemaining(apiKey, model, remaining) {
+  const seconds = Number(remaining);
+  if (!Number.isFinite(seconds) || seconds < 0 || seconds > ALI_MONTHLY_QUOTA_SECONDS) {
+    throw new Error(`剩余额度必须是 0 到 ${ALI_MONTHLY_QUOTA_SECONDS} 之间的数字`);
+  }
+  return updateAliUsage(apiKey, model, record => ({
+    ...record,
+    used: ALI_MONTHLY_QUOTA_SECONDS - seconds,
+    taskIds: Array.isArray(record.taskIds) ? record.taskIds : []
+  }));
+}
+
+function recordAliUsage(apiKey, model, duration, taskId) {
+  const seconds = Number(duration);
+  if (!Number.isFinite(seconds) || seconds <= 0) throw new Error("任务用量无效");
+  const id = String(taskId || "").trim();
+  if (!id) throw new Error("任务 ID 无效");
+
+  return updateAliUsage(apiKey, model, record => {
+    const taskIds = Array.isArray(record.taskIds) ? record.taskIds : [];
+    if (taskIds.includes(id)) return record;
+    return {
+      used: (Number(record.used) || 0) + seconds,
+      taskIds: [...taskIds, id].slice(-1000)
+    };
+  });
 }
 
 async function uploadDashScopeTemp(audioUrl, apiKey, model) {
