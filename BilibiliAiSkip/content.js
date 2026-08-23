@@ -486,7 +486,7 @@ async function adRecognition(bvid,pvid) {
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
-                sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model, tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data;`,
+                sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model, tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data, subtitle = excluded.subtitle;`,
                 params: [aid, bvid, cid, JSON.stringify(resultAD), subtitle, title, type, settings.apiModel, total_tokens]
             }
         });
@@ -505,6 +505,60 @@ async function adRecognition(bvid,pvid) {
         if(popups.ai) closePopup(popups.ai);
         return null;
     }
+}
+
+async function getReRecognitionSubtitle(aid, cid, title) {
+    const playerResponse = await fetch(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`, {
+        credentials: "include"
+    });
+    if (!playerResponse.ok) throw new Error(`获取视频字幕失败: ${playerResponse.status}`);
+
+    const playerData = await playerResponse.json();
+    const subtitleUrl = playerData.data?.subtitle?.subtitles?.[0]?.subtitle_url;
+    if (subtitleUrl) {
+        const resolvedUrl = subtitleUrl.startsWith('//') ? `https:${subtitleUrl}` : subtitleUrl;
+        const subtitleResponse = await fetch(resolvedUrl);
+        if (!subtitleResponse.ok) throw new Error(`下载视频字幕失败: ${subtitleResponse.status}`);
+        const subtitleData = await subtitleResponse.json();
+        const subtitle = (subtitleData.body || [])
+            .map(item => `${item.from} --> ${item.to}\n${item.content}\n`)
+            .join('');
+        if (subtitle) {
+            showPopup("使用视频字幕重新分析.");
+            return `标题: ${title}\n\n内容:\n\n${subtitle}`;
+        }
+    }
+
+    const localResult = await chrome.storage.local.get('subtitle');
+    const localSubtitle = localResult?.subtitle?.[cid];
+    if (localSubtitle) {
+        showPopup("使用本地音频缓存重新分析.");
+        return `标题: ${title}\n\n内容:\n\n${localSubtitle}`;
+    }
+
+    const dbResults = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: "dbQuery",
+            url: settings.cfApiURL,
+            method: "POST",
+            cfApiKey: settings.cfApiKey,
+            body: {sql: "SELECT subtitle FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
+        }, response => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else if (response?.success) {
+                resolve(response?.data?.result?.[0]?.results?.[0]);
+            } else {
+                reject(new Error(response?.error || "读取音频缓存失败"));
+            }
+        });
+    });
+    if (dbResults?.subtitle) {
+        showPopup("使用云端音频缓存重新分析.");
+        return dbResults.subtitle;
+    }
+
+    throw new Error("未找到视频字幕或音频缓存");
 }
 
 async function callOpenAI(subtitle) {
@@ -969,16 +1023,19 @@ function showCorrectionPopup(cid, currentAdsData) {
         closePopup(popup);
     });
 
-    async function submitCorrection(adsData, message, model) {
+    async function submitCorrection(adsData, message, model, allowUnchanged = false) {
         cancelTimeSelectionMode();
         if (typeof settings === 'undefined' || !settings.cfApiURL || !settings.cfApiKey) {
             showPopup("提交失败：无法访问配置");
             return;
         }
 
-        if (JSON.stringify(adsData) == JSON.stringify(currentAdsData)) {
+        if (!allowUnchanged && JSON.stringify(adsData) == JSON.stringify(currentAdsData)) {
             const submitButton = popup.querySelector('#submit-button');
-            if(submitButton) submitButton.disabled = false; submitButton.textContent = '提交';
+            if(submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = '提交';
+            }
             showPopup("数据无变化");
             return; 
         }
@@ -1022,28 +1079,7 @@ function showCorrectionPopup(cid, currentAdsData) {
 
     popup.querySelector('#ai-re-recog').addEventListener('click', async () => {
         if (window.confirm("您确定使用 AI 重新识别广告吗？这将覆盖之前的记录。")) {
-            let bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
-            let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
-            const videoData = await response.json(), aid = videoData.data.aid, cid = videoData.data.pages?.[pvid?pvid-1:pvid]?.cid || videoData.data.cid;
-
-            let dbResults = await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({
-                    action: "dbQuery",
-                    url: settings.cfApiURL,
-                    method: "POST",
-                    cfApiKey: settings.cfApiKey,
-                    body: {sql: "SELECT subtitle FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
-                }, response => {
-                    if (response.success) {
-                        resolve(response?.data?.result?.[0]?.results?.[0]);
-                    } else {
-                        styleLog("Background fetch error: " + response.error);
-                        reject(new Error(response.error));
-                    }
-                });
-            });
-
-            if(dbResults?.subtitle) {
+            try {
                 for(const key of ["apiKey", "apiURL", "apiModel"]) {
                     if(!settings[key]) {
                         popups.others.push(showPopup(`Please set ${key} in extension settings`));
@@ -1056,13 +1092,26 @@ function showCorrectionPopup(cid, currentAdsData) {
                     return {ads:[], msg: `请使用其他模型`};
                 }
 
+                let bvid = window.location.pathname.split('/')[2], pvid = new URLSearchParams(window.location.search).get('p');
+                if(bvid == 'watchlater') bvid = new URLSearchParams(window.location.search).get('bvid');
+                let response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {credentials: "include"});
+                if (!response.ok) throw new Error(`获取视频信息失败: ${response.status}`);
+                const videoData = await response.json();
+                const aid = videoData.data?.aid;
+                const cid = videoData.data?.pages?.[pvid ? pvid - 1 : pvid]?.cid || videoData.data?.cid;
+                const title = videoData.data?.title || document.title;
+                if (!aid || !cid) throw new Error("获取视频信息失败");
+
+                popups.others.push(showPopup("重新获取视频字幕/音频缓存..."));
+                const subtitle = await getReRecognitionSubtitle(aid, cid, title);
+
                 popups.ai = showPopup(`使用 ${settings.apiModel} 重新分析中...`,1);
                 popups.others.push(popups.ai);
 
-                let data = await callOpenAI(dbResults.subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
+                let data = await callOpenAI(subtitle), aiResponse = data?.choices?.[0]?.message?.content, total_tokens = data?.usage?.total_tokens;
                 for(let i = 1; i < 3 && !aiResponse; i++) {
                     showPopup('Re-fetch AI.');
-                    data = await callOpenAI(dbResults.subtitle);
+                    data = await callOpenAI(subtitle);
                     if (!data) break;
                     aiResponse = data.choices?.[0]?.message?.content;
                     total_tokens = data.usage?.total_tokens;
@@ -1089,7 +1138,11 @@ function showCorrectionPopup(cid, currentAdsData) {
                     }
                 }
 
-                submitCorrection(resultAD, '重新识别已完成.', settings.apiModel);
+                await submitCorrection(resultAD, '重新识别已完成.', settings.apiModel, true);
+            } catch (error) {
+                closePopup(popups.ai);
+                showPopup("重新识别失败: " + error.message);
+                styleLog("AI re-recognition error: " + error.message);
             }
         } else {
             showPopup('取消提交');
