@@ -307,7 +307,7 @@ async function adRecognition(bvid,pvid) {
                 url: settings.cfApiURL,
                 method: "POST",
                 cfApiKey: settings.cfApiKey,
-                body: {sql: "SELECT data,model FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
+                body: {sql: "/* firefox */ SELECT data,model FROM bilijump WHERE cid = ? LIMIT 1;", params: [cid]}
             }, response => {
                 if (response.success) {
                     resolve(response?.data?.result?.[0]?.results?.[0]);
