@@ -483,11 +483,12 @@ async function adRecognition(bvid,pvid) {
         }
 
         styleLog(`CID: ${cid}, data: ${JSON.stringify(resultAD)}`);
+        const cachedSubtitle = type === '音频' ? subtitle : '';
         chrome.runtime.sendMessage({
             action: "dbQuery", url: settings.cfApiURL, method: "POST", cfApiKey: settings.cfApiKey,
             body: {
                 sql: `INSERT INTO bilijump (aid, bid, cid, data, subtitle, title, type, model, tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(cid) DO UPDATE SET data = excluded.data, subtitle = excluded.subtitle;`,
-                params: [aid, bvid, cid, JSON.stringify(resultAD), subtitle, title, type, settings.apiModel, total_tokens]
+                params: [aid, bvid, cid, JSON.stringify(resultAD), cachedSubtitle, title, type, settings.apiModel, total_tokens]
             }
         });
 
